@@ -248,3 +248,7 @@ tools/.venv/Scripts/python tools/build_map.py
 ```
 It writes `coastline.json` (polygons for drawing) and `terrain.png` (a mask at 1 pixel per 4 map pixels, used for land and shallow checks and route finding).
 Scale: 100 map px = 1 degree of latitude = 60 nautical miles.
+
+## Licence
+
+The code is MIT (see `LICENSE`). Our own generated art is CC0. Third-party fonts, music, sound effects and map data keep their own licences, listed in `assets/CREDITS.md`.
