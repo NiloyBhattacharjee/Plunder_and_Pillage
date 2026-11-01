@@ -163,10 +163,11 @@ func _finish() -> void:
 			messages.append(err if err != "" else "A prize crew takes the %s." % enemy.name)
 		else:
 			messages.append("The %s burns and sinks." % enemy.name)
+	var value: float = enemy.gold + taken_value
+	if _ship_fate.selected == 0:
+		value += Data.table("ships")[enemy.type].price * Data.rules.prizes.sale_mult
+	messages.append_array(Career.on_plunder(s, enemy.faction, value, enemy.get("legal", true)))
 	if enemy.get("legal", true):
-		var value: float = enemy.gold + taken_value
-		if _ship_fate.selected == 0:
-			value += Data.table("ships")[enemy.type].price * Data.rules.prizes.sale_mult
 		messages.append_array(Career.record_prize(s, value))
 	hide()
 	done.emit(messages)

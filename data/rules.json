@@ -392,6 +392,8 @@
     "_bounty": "The price on your head, by nation (Career.add_bounty): per_attack plus per_notoriety x the target's notoriety for each act of piracy, sack for sacking a town. It fades by decay_per_day. From hunt_from, hunters come: one more for every per_hunter gold, in the biggest ship whose threshold it passes. guarda_search: the chance a guarda costa stops a foreign ship with nothing to hide.",
     "bounty": {"per_attack": 50, "per_notoriety": 25, "sack": 2000, "decay_per_day": 0.003, "hunt_from": 600, "per_hunter": 4000,
                "ships": [[0, "brigantine"], [2500, "brig"], [6000, "frigate"], [12000, "galleon"]]},
+    "_plunder": "A prize weighed against the victim's means (Career.on_plunder): share = value / max(the nation's monthly income, min_income), income being its towns' people x income_per_head. It costs share x anger_per_share standing with them (at most anger_max) and, for piracy, adds share x bounty_per_share to the price on your head. You're told when share reaches tell_from.",
+    "plunder": {"income_per_head": 0.15, "min_income": 600, "anger_per_share": 4, "anger_max": 15, "bounty_per_share": 150, "tell_from": 0.5},
     "guarda_search": 0.3,
     "arrears_visit_penalty": 3,
     "arrears_revoke": 3000,
