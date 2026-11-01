@@ -43,6 +43,12 @@ func test_a_prize_feeds_the_company_working_that_route_and_angers_her_nation():
 	assert_gt(b.heat.florida_straits, 0.0, "the navy will know where to look")
 
 
+func test_your_prizes_bring_the_navy_too():
+	b.companies = []
+	b.on_loss({"origin": "havana", "dest": "veracruz", "faction": "spain"}, "player")
+	assert_gt(b.heat.florida_straits, 0.0, "the navy hunts where you've been taking prizes")
+
+
 func test_threat_levels_off():
 	b.companies = []
 	b._form(100, [], "spanish_main", false)

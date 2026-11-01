@@ -226,7 +226,11 @@ func on_loss(v: Dictionary, cause: String, company := "") -> void:
 	if not m.cfg.has("piracy") or not cause in ["pirates", "player"]:
 		return
 	pressure[v.faction] = pressure.get(v.faction, 0.0) + 1.0
-	if cause != "pirates":
+	if cause == "player":  # the men-of-war hunt where you've been taking prizes, not only the companies
+		for g in grounds():
+			if covers(g, v.origin, v.dest):
+				heat[g] += 1.0
+				break
 		return
 	var co := find(company) if company != "" else _raider(v.origin, v.dest)
 	if co.is_empty():
