@@ -151,6 +151,33 @@ static func on_attack(s: Dictionary, enemy: Dictionary) -> Array:
 	return msgs
 
 
+## What a nation's colonies make in a month: the people of the towns it holds, at plunder.income_per_head.
+static func income(f: String) -> float:
+	var people := 0.0
+	var settled: Dictionary = Economy.model.towns.settled
+	for id in settled:
+		if Ports.port(id).get("faction", "") == f:
+			people += settled[id]
+	return people * float(cfg().plunder.income_per_head)
+
+
+## What you took from a nation, weighed against its monthly income: a prize a rich nation shrugs off is a blow to a
+## small one (min_income keeps the smallest from taking it too hard). Lawful or not, the victim resents it; piracy
+## also raises the price on your head. Returns messages.
+static func on_plunder(s: Dictionary, f: String, value: float, legal: bool) -> Array:
+	if f == "" or f == "pirates" or f == "maroons" or value <= 0.0:
+		return []
+	var c: Dictionary = cfg().plunder
+	var share := value / maxf(income(f), float(c.min_income))
+	var anger := mini(int(round(share * float(c.anger_per_share))), int(c.anger_max))
+	s.relations[f] -= anger
+	if not legal:
+		add_bounty(s, f, share * float(c.bounty_per_share))
+	if share < float(c.tell_from):
+		return []
+	return ["%s feels this loss: the prize comes to %d%% of what its colonies make in a month (standing -%d)." % [fname(f), roundi(share * 100.0), anger]]
+
+
 static func crown_cut(s: Dictionary) -> float:
 	if s.career.marque == "":
 		return 0.0

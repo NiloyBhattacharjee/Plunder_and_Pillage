@@ -132,3 +132,15 @@ func test_navies_judge_you_by_your_colours():
 	assert_true(Career.npc_hostile(s, spanish_navy, rng))
 	s.flag = "black"
 	assert_true(Career.npc_hostile(s, spanish_navy, rng))
+
+
+func test_a_prize_stings_a_small_nation_more_than_a_rich_one():
+	var before: Dictionary = s.relations.duplicate()
+	Career.on_plunder(s, "spain", 2000, false)
+	Career.on_plunder(s, "dutch", 2000, false)
+	var spain_lost: int = before.spain - s.relations.spain
+	var dutch_lost: int = before.dutch - s.relations.dutch
+	assert_gt(dutch_lost, spain_lost, "the same prize weighs more on the Dutch")
+	assert_gt(s.bounty.dutch, s.bounty.spain)
+	Career.on_plunder(s, "france", 2000, true)
+	assert_false(s.get("bounty", {}).has("france"), "a lawful prize angers but puts no price on your head")
