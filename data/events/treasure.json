@@ -1,17 +1,19 @@
 {
   "_comment": "Treasure: maps, wrecks, buried chests. Many are chains: a first event queues a second that waits for you somewhere. See docs/events.md.",
 
-  "treasure_twin_palms": {
-    "title": "The twin palms",
-    "text": "{port}. Ashore, beyond the town, two palms lean together exactly as the scrap of chart showed.",
-    "where": "port", "chain_only": true,
-    "conditions": ["port == {port}", "flag.map_twin_palms"],
-    "roles": {"port": {"from": "port"}},
+  "treasure_dig": {
+    "title": "Where the chart leads",
+    "text": "{port}. Beyond the town the coast matches the chart in your coat: the headland, the creek, the cross.",
+    "where": "port", "priority": true, "cooldown": 7,
+    "conditions": ["map_here"],
     "choices": [
       {"text": "Pace it out and dig", "check": {"who": "captain", "skill": "navigation", "dc": 12},
-       "outcomes": ["gold +600", "unflag map_twin_palms", "opinion crew +3"], "result": "Spades strike wood. A sea chest, packed with coin of every nation.",
-       "fail_outcomes": ["unflag map_twin_palms", "time 2"], "fail_result": "Two days of digging. Nothing but sand crabs. Either you counted wrong or someone got here first."},
-      {"text": "Sell the map to a local fool", "outcomes": ["gold +80", "unflag map_twin_palms"], "result": "He pays eighty and runs off with a spade."}
+       "outcomes": ["dig"], "result": "You count the paces off the chart and put the spades in.",
+       "fail_outcomes": ["dig fail", "time 2"], "fail_result": "Two days of digging in the wrong place. You must have counted from the wrong palm."},
+      {"text": "Pay a local who knows the place to show you", "conditions": ["gold >= 60"], "outcomes": ["gold -60", "dig", "notoriety +2"],
+       "result": "An old fisherman knows the spot at once. By tonight the whole waterfront will know you dug there."},
+      {"text": "Sell the chart to some local fool", "outcomes": ["gold +80", "unmap here"], "result": "They pay eighty and run off with a spade."},
+      {"text": "Not now", "outcomes": [], "result": "The chart goes back in your coat. It will keep."}
     ]
   },
 
@@ -19,26 +21,57 @@
     "title": "A treasure map, cheap",
     "text": "A one-eyed man in the market unrolls a stained chart: 'Spanish gold, Captain, on an island near {port}. Yours for {price} pieces.'",
     "where": "port", "weight": 6,
+    "conditions": ["maps < 3"],
     "roles": {"port": {"from": "port", "where": ["not here"]}, "price": {"from": "number", "range": [60, 200]}},
     "choices": [
-      {"text": "Pay him", "conditions": ["gold >= {price}"], "outcomes": ["gold -{price}", "event map_seller_dig 0 365"], "result": "You pocket the chart."},
-      {"text": "Look at it closely first", "check": {"who": "captain", "skill": "navigation", "dc": 13},
-       "outcomes": [], "result": "The coastline is drawn wrong, the ink is new, and the 'old Spanish' is misspelt. A forgery.",
-       "fail_outcomes": ["gold -{price}", "event map_seller_dig 0 365"], "fail_result": "It looks genuine enough. You pay."},
+      {"text": "Pay him", "conditions": ["gold >= {price}"], "outcomes": ["gold -{price}", "map {port} 400 maybe"], "result": "You pocket the chart. Whether it's genuine, only a spade will tell."},
+      {"text": "Look through everything he has", "conditions": ["gold >= {price}"], "check": {"who": "captain", "skill": "navigation", "dc": 13},
+       "outcomes": ["gold -{price}", "map {port} 400"], "result": "Of the three charts he unrolls, two are new ink on old paper. The third was drawn by someone who sailed that coast. You pay for that one.",
+       "fail_outcomes": ["gold -{price}", "map {port} 400 maybe"], "fail_result": "They all look genuine enough. You pay for the first."},
       {"text": "Send him on his way", "outcomes": [], "result": "He tries the next captain along."}
     ]
   },
 
-  "map_seller_dig": {
-    "title": "The one-eyed man's island",
-    "text": "The island near {port} is just where the chart puts it.",
-    "where": "port", "chain_only": true,
-    "conditions": ["port == {port}"],
-    "roles": {"port": {"from": "port"}, "price": {"from": "number", "range": [60, 200]}},
+  "map_thief": {
+    "title": "The chart is gone",
+    "text": "Your sea chest was opened in the night and the treasure chart is missing. {sailor} was seen poring over a scrap of paper by lantern light.",
+    "conditions": ["maps > 0"],
+    "roles": {"sailor": {"from": "crew", "where": ["trait.greedy"]}},
+    "weight": 4,
     "choices": [
-      {"text": "Search it", "check": {"who": "captain", "skill": "navigation", "dc": 16},
-       "outcomes": ["gold +400"], "result": "Against all odds, a buried strongbox. The forger had a real map after all, or copied one.",
-       "fail_outcomes": ["time 1", "opinion crew -2"], "fail_result": "Nothing but goats. The crew laugh at you behind their hands."}
+      {"text": "Search {sailor}'s sea bag", "check": {"who": "captain", "skill": "authority", "dc": 12},
+       "outcomes": ["opinion {sailor} -5"], "result": "The chart is rolled up inside a spare shirt. {sailor} swears it was only borrowed.",
+       "fail_outcomes": ["unmap any", "opinion crew -2"], "fail_result": "Nothing in the bag, and the crew mutter about a captain who searches honest hands. The chart stays gone."},
+      {"text": "Flog {sailor} until it turns up", "outcomes": ["opinion {sailor} -15", "fear +1", "opinion crew -2"], "result": "On the fourth stroke {sailor} tells you where it's hidden."},
+      {"text": "Promise {sailor} a share of whatever it leads to", "outcomes": ["opinion {sailor} +5", "wages +60"], "result": "The chart comes back, with a promise you'll have to keep."},
+      {"text": "Let it go", "outcomes": ["unmap any"], "result": "Let them have it. It was probably a forgery anyway."}
+    ]
+  },
+
+  "map_buyer": {
+    "title": "An offer for the chart",
+    "text": "Word has got round that you carry a treasure chart. An agent for some merchant house finds you in the tavern: 'Two hundred for it, Captain, and no questions about where it leads.'",
+    "where": "port", "weight": 4,
+    "conditions": ["maps > 0", "not map_here"],
+    "choices": [
+      {"text": "Take the two hundred", "outcomes": ["gold +200", "unmap any"], "result": "Gold in hand beats gold in the ground."},
+      {"text": "Haggle", "check": {"who": "captain", "skill": "charisma", "dc": 13},
+       "outcomes": ["gold +350", "unmap any"], "result": "You talk of rival buyers until the agent goes to three hundred and fifty.",
+       "fail_outcomes": [], "fail_result": "The agent smiles, finishes their wine and leaves. The offer goes with them."},
+      {"text": "It isn't for sale", "outcomes": [], "result": "The agent shrugs. Others will ask."}
+    ]
+  },
+
+  "old_hand_chart": {
+    "title": "An old hand's chart",
+    "text": "{sailor}, who has sailed these waters longer than anyone aboard, comes to your cabin with a greasy scrap of chart. 'Buried it myself near {port}, back when I sailed with worse than you. I'm too old to dig alone. Take me there and I'll take a double share.'",
+    "conditions": ["at_sea", "maps < 3"],
+    "roles": {"sailor": {"from": "crew", "where": ["age >= 45"]}, "port": {"from": "port"}},
+    "weight": 3,
+    "choices": [
+      {"text": "A double share it is", "outcomes": ["map {port} 700", "opinion {sailor} +10", "wages +100"], "result": "You shake on it. The chart goes in your coat."},
+      {"text": "Buy the chart outright", "conditions": ["gold >= 150"], "outcomes": ["gold -150", "map {port} 700", "opinion {sailor} -3"], "result": "{sailor} takes the money, and looks at you as if you'd robbed a grave."},
+      {"text": "Old men's tales", "outcomes": ["opinion {sailor} -5"], "result": "{sailor} folds the chart away and doesn't raise it again."}
     ]
   },
 

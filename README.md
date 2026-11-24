@@ -62,6 +62,7 @@ Like a Paradox game, the ship's log keeps a record of every week: your gold, wha
 - **Alliances and feuds** with named captains who sail the map and grow with their fame.
 - **Three starting eras**: 1680 (the last buccaneers), 1713 (the Peace of Utrecht) or 1715 (the Republic of Pirates). History before your start is already in place, and the captains of the time are already at sea.
 - **The real captains of the age**: de Graaf and Grammont, Hornigold, Bellamy, La Buse, Blackbeard, Vane, Calico Jack and Black Bart Roberts arrive on their real dates and live their histories (new ships, pardons, deaths), unless you cross their wake.
+- **Treasure charts** you keep in your coat until you drop anchor where they lead. Some are forgeries, a crewman might steal one, and a merchant's agent might buy it.
 - **Bases:** hidden coves you can build up with storehouses, shipyards and forts.
 - **A squadron of up to four consorts,** each with a captain who may desert you.
 - **Wars between the nations,** with invasion squadrons you can catch at sea.

@@ -164,18 +164,17 @@ func test_greyed_out_choices_say_why():
 	assert_string_contains(ransom.tooltip, "Requires")
 
 
-func test_chains_wait_for_their_moment():
+func test_a_chart_waits_for_its_port():
 	var inst := Events._instance(Events.events.message_in_bottle, ctx(), {})
 	var target: String = inst.vars.port
 	Events.resolve(inst, 0, ctx())
-	assert_eq(Events.queue.size(), 1)
+	assert_eq(s.maps.size(), 1)
 	var other: String = "nassau" if target != "nassau" else "port_royal"
 	Events.rng.seed = 1
 	var elsewhere := Events.pick("port", ctx(other))
-	assert_ne(elsewhere.get("id", ""), "treasure_twin_palms")
+	assert_ne(elsewhere.get("id", ""), "treasure_dig")
 	var there := Events.pick("port", ctx(target))
-	assert_eq(there.id, "treasure_twin_palms")
-	assert_eq(there.vars.port, target)
+	assert_eq(there.id, "treasure_dig")
 
 
 func test_once_and_cooldown():
@@ -265,3 +264,32 @@ func test_validator_catches_a_story_left_hanging():
 	Events.events.erase("_bad")
 	for want in ["has no act 9", "leaves the story hanging", "unknown ending"]:
 		assert_string_contains(errs, want)
+
+
+func test_a_treasure_chart_is_held_dug_and_used_up():
+	Events.apply_outcome("map havana 600", ctx())
+	assert_eq(Events.value("maps", ctx()), 1)
+	assert_false(Events.value("map_here", ctx("port_royal")), "the chart leads to Havana")
+	assert_true(Events.value("map_here", ctx("havana")))
+	var inst := Events.pick("port", ctx("havana"))
+	assert_eq(inst.get("id", ""), "treasure_dig", "anchoring where a chart leads brings out the spades")
+	var gold: float = s.gold
+	for i in Data.rules.events.map_digs - 1:
+		Events.apply_outcome("dig fail", ctx("havana"))
+	assert_eq(Events.value("maps", ctx()), 1, "a spot crossed off, the chart still held")
+	Events.apply_outcome("dig", ctx("havana"))
+	assert_eq(s.gold, gold + 600.0, "a true chart pays")
+	assert_eq(Events.value("maps", ctx()), 0)
+	Events.apply_outcome("map havana 600 fake", ctx())
+	Events.apply_outcome("dig", ctx("havana"))
+	assert_eq(s.gold, gold + 600.0, "a forgery pays nothing")
+	Events.apply_outcome("map havana 600", ctx())
+	for i in Data.rules.events.map_digs:
+		Events.apply_outcome("dig fail", ctx("havana"))
+	assert_eq(Events.value("maps", ctx()), 0, "every spot dug, the chart is given up")
+	Events.apply_outcome("map havana 600", ctx())
+	Events.apply_outcome("map havana 600", ctx())
+	Events.apply_outcome("map tortuga 300", ctx())
+	assert_eq(Events.value("maps", ctx()), 2, "one chart per place")
+	Events.apply_outcome("unmap any", ctx())
+	assert_eq(Events.value("maps", ctx()), 1, "stolen or sold")

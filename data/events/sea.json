@@ -194,7 +194,7 @@
     "roles": {"port": {"from": "port", "where": ["not here"]}},
     "weight": 5,
     "choices": [
-      {"text": "Keep it. Next time you're in {port}, you'll look", "outcomes": ["event treasure_twin_palms 0 365", "flag map_twin_palms 365"], "result": "You fold the scrap carefully into your coat."},
+      {"text": "Keep it. Next time you're in {port}, you'll look", "outcomes": ["map {port} 600"], "result": "You fold the scrap carefully into your coat."},
       {"text": "Laugh and throw it back", "outcomes": [], "result": "Some joker's idea of fun, surely."}
     ]
   },

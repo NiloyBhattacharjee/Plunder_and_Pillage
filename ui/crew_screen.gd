@@ -80,6 +80,10 @@ func _build_captain(cap: Dictionary) -> void:
 	if not s.hostages.is_empty():
 		UIKit.label(box, "Hostages: " + ", ".join(s.hostages.map(func(h): return "%s (%s, %d gold)" % [
 			People.person(h.id).name, Data.table("factions")[h.faction].name, h.ransom])))
+	for m in s.get("maps", []):  # treasure charts: dug when you drop anchor at their port
+		UIKit.label(box, "Treasure chart: near %s" % Ports.port(m.port).name,
+			"From \"%s\", %s.\nDrop anchor at %s to dig. %d spot%s on it left to try. A forgery looks just like a true chart." % [
+				m.from, m.got, Ports.port(m.port).name, m.digs, "" if m.digs == 1 else "s"])
 	UIKit.label(box, "")
 	UIKit.label(box, "How it ends", "Some endings you earn and choose. Others choose you: the gallows, the sea, or a crew with no one left to lead it.", Style.c("header"))
 	for e in Endings.choices(s, docked):

@@ -25,7 +25,7 @@ const VERBS := {  # verb: [min args, max args]
 	"reveal_cove": [0, 0], "intel": [1, 1], "base_gold": [2, 2], "base_loyalty": [2, 2], "base_visibility": [2, 2], "base_store": [3, 3],
 	"base_garrison": [2, 2], "base_damage": [1, 1], "base_lost": [1, 1], "bounty": [2, 2],
 	"patrols": [2, 2], "town": [2, 2], "deed": [1, 1], "want": [2, 2], "supply": [2, 2], "settle": [1, 1], "marque": [1, 1], "morale": [2, 2], "calm": [1, 1], "expose": [0, 0], "mutiny": [0, 0], "depose": [0, 0], "share": [1, 1], "confidence": [0, 0], "event": [1, 3], "fight": [1, 3], "market": [2, 2], "time": [1, 1], "ending": [2, 2], "focus": [1, 1],
-	"maroons": [1, 2],
+	"maroons": [1, 2], "map": [2, 3], "unmap": [1, 1], "dig": [0, 1],
 }
 const SOURCES := ["crew", "officer", "captain", "new", "port", "here", "nation", "enemy", "good", "number", "ringleader",
 	"official", "creditor", "enemy_official", "council", "ally", "rival", "captain_npc", "base"]
@@ -407,6 +407,8 @@ func value(key: String, ctx: Dictionary) -> Variant:
 		"bounty": return Career.bounty_total(s)
 		"at_base": return ctx.get("base", "") != ""
 		"secrets": return s.get("secrets", []).size()
+		"maps": return s.get("maps", []).size()  # treasure charts in your sea chest
+		"map_here": return ctx.port != "" and s.get("maps", []).any(func(m): return m.port == ctx.port)  # and one leads here
 		"council_member": return s.get("council_member", false)
 		"council_leader": return Politics.council_leader == "player"
 		"power": return Politics.power(ctx.port).get(rest, 0.0) if ctx.port != "" else 0.0
@@ -836,6 +838,39 @@ func _apply(o: String, ctx: Dictionary, vars: Dictionary, res: Dictionary) -> St
 			if mid != "":
 				Maroons.bands[mid].strength = clampf(Maroons.bands[mid].strength + float(a[1]), 0.0, 100.0)
 			return ""
+		"map":  # a treasure chart into your sea chest: map PORT VALUE [fake|maybe]. A forgery looks like any other chart.
+			s.maps = s.get("maps", [])
+			if s.maps.any(func(m): return m.port == a[1]):
+				return "You already hold a chart to %s" % Ports.port(a[1]).name
+			var fake: bool = a.size() > 3 and (a[3] == "fake" or (a[3] == "maybe" and rng.randf() < cfg().map_fake_chance))
+			s.maps.append({"port": a[1], "value": float(a[2]), "fake": fake, "from": res.title, "got": Clock.date_string(), "digs": int(cfg().map_digs)})
+			return "A chart to treasure near %s" % Ports.port(a[1]).name
+		"unmap":  # a chart is gone (sold, stolen, burned): unmap here (the one for this port), unmap any, unmap PORT
+			var held: Array = s.get("maps", [])
+			if held.is_empty():
+				return ""
+			var i: int = rng.randi() % held.size() if a[1] == "any" else held.find_custom(func(m): return m.port == (ctx.port if a[1] == "here" else a[1]))
+			if i < 0:
+				return ""
+			var gone: Dictionary = held.pop_at(i)
+			return "The chart to %s is gone" % Ports.port(gone.port).name
+		"dig":  # dig where the chart for this port says: dig (it pays, unless it's a forgery), dig fail (a spot crossed off)
+			var held: Array = s.get("maps", [])
+			var i: int = held.find_custom(func(m): return m.port == ctx.port)
+			if i < 0:
+				return ""
+			var m: Dictionary = held[i]
+			if a.size() > 1:
+				m.digs -= 1
+				if m.digs > 0:
+					return "A spot on the chart crossed off: %d left to try" % m.digs
+				held.remove_at(i)
+				return "Every spot on the chart dug, and nothing. Someone got here first"
+			held.remove_at(i)
+			if m.fake:
+				return "Nothing at all. The chart was a forgery"
+			s.gold += m.value
+			return "Gold %+d: the chart was true" % m.value
 		"reveal_cove":
 			var found := Bases.reveal_random()
 			return "You learn of a hidden anchorage: %s" % Bases.cove(found).name if found != "" else ""
@@ -1068,6 +1103,8 @@ func validate() -> PackedStringArray:
 					out.append("%s: chains to unknown event '%s'" % [where, a[1]])
 				elif a[0] in ["cargo", "loot"] and not a[1].begins_with("{") and not Data.table("goods").has(a[1]):
 					out.append("%s: unknown good in '%s'" % [where, o])
+				elif (a[0] == "dig" and a.size() > 1 and a[1] != "fail") or (a[0] == "map" and a.size() > 3 and not a[3] in ["fake", "maybe"]):
+					out.append("%s: can't read '%s'" % [where, o])
 				elif a[0] == "deed" and not PortLife.mem_cfg().deeds.has(a[1]):
 					out.append("%s: unknown deed in '%s'" % [where, o])
 				elif a[0] == "abandon" and not Data.table("contracts").has(a[1]):
@@ -1129,7 +1166,7 @@ const COND_KEYS := ["gold", "crew", "hull", "sails", "notoriety", "honour", "fea
 	"has_officer", "at_sea", "in_port", "storm", "pirate", "privateer", "honest", "wanted", "marque", "home", "pardoned",
 	"pardon_open", "war", "flag", "contract", "ship", "port", "port_faction", "port_fence", "port_is", "true",
 	"morale", "unrest", "unrest_known", "sick", "shares", "crew_share", "owes", "secrets", "council_member", "council_leader", "power", "allies", "rivals", "neutral", "bases", "at_base",
-	"town", "life", "towns", "own_town", "sacked", "bounty", "regard", "deed", "story", "focus", "maroons"]
+	"town", "life", "towns", "own_town", "sacked", "bounty", "regard", "deed", "story", "focus", "maroons", "maps", "map_here"]
 const TEXT_KEYS := ["focus", "office", "date", "ship", "port", "port_faction", "marque", "home", "post", "faction", "nationality", "taxes"]
 const BASE_KEYS := ["loyalty", "visibility", "garrison", "built", "managed", "manager_opinion", "town", "taxes"]
 const CAND_KEYS := ["in_town", "loyalty", "visibility", "garrison", "built", "managed", "manager_opinion", "town", "taxes", "bonded", "office", "trait", "known_trait", "opinion", "officer", "post", "nationality", "age", "hidden", "faction", "fence",
@@ -1165,6 +1202,6 @@ func save_state() -> Dictionary:
 func load_state(d: Dictionary) -> void:
 	fired = d.fired
 	flags = d.flags
-	queue = d.queue
+	queue = d.queue.filter(func(q): return events.has(q.id))  # chains to events since removed are dropped
 	stories = d.get("stories", {})
 	rng.state = int(d.rng)
