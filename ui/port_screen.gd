@@ -539,7 +539,7 @@ func _build_politics() -> void:
 		UIKit.label(line, "%s: %s.  Opinion of you %+d.  Wants to %s.  %s%s" % [P.roles[c.role].name, c.name, c.relations.get(s.captain, 0),
 			P.goals[c.get("goal", "keep_order")].name, ("Owes you %d favour%s." % [owed, "" if owed == 1 else "s"]) if owed > 0 else (("You owe them %d." % -owed) if owed < 0 else ""),
 			("  " + Bonds.level_name(id, Bonds.level(s, id)) + ".") if Bonds.level(s, id) != 0 else ""],
-			People.describe(c))
+			People.describe(c) + ("\n" + c.mind if c.has("mind") else ""))
 		if disguised and c.role == "governor":
 			continue
 		var acts := UIKit.row(box)  # favours on their own line, under the person

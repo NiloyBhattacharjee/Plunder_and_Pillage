@@ -176,7 +176,6 @@ func monthly() -> void:
 ## In a war, each side may send a squadron against one of the other's smaller towns (never a capital, never one
 ## you hold). It gathers for a while, sails lead_days before it's due (Shipping), and attacks on the day.
 func _campaign(pair: Array) -> void:
-	var inv: Dictionary = cfg().invasion
 	for i in 2:
 		var by: String = pair[i]
 		var from: String = pair[1 - i]
@@ -185,10 +184,15 @@ func _campaign(pair: Array) -> void:
 		var towns: Array = Ports.state.keys().filter(func(id): return _takeable(id, from))
 		if towns.is_empty() or Contracts._ports_of(from).size() <= 1 or Contracts._ports_of(by).is_empty():
 			continue
-		var id: String = towns[rng.randi() % towns.size()]
-		var due := Clock.day + rng.randf_range(inv.days[0], inv.days[1])
-		invasions.append({"port": id, "by": by, "from": from, "due": due, "npc": "", "spawned": false})
-		Economy.add_news("A %s squadron is fitting out to attack %s. They say it sails within the month." % [Data.table("factions")[by].adjective, Ports.port(id).name], id)
+		send(by, from, towns[rng.randi() % towns.size()])
+
+
+## A squadron of `by` fitting out to take `id` from `from` (a campaign's, or one an official pushed for).
+func send(by: String, from: String, id: String) -> void:
+	var inv: Dictionary = cfg().invasion
+	var due := Clock.day + rng.randf_range(inv.days[0], inv.days[1])
+	invasions.append({"port": id, "by": by, "from": from, "due": due, "npc": "", "spawned": false})
+	Economy.add_news("A %s squadron is fitting out to attack %s. They say it sails within the month." % [Data.table("factions")[by].adjective, Ports.port(id).name], id)
 
 
 static func _takeable(id: String, from: String) -> bool:

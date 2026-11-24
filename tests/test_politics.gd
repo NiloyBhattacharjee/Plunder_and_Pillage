@@ -155,3 +155,52 @@ func test_officials_change_over_time():
 	assert_ne(now, gov)
 	assert_true(People.chars.has(gov), "the old governor is still remembered")
 	assert_eq(People.person(gov).port, "")
+
+
+# ---- minds ----------------------------------------------------------------------------
+
+func test_hot_waters_turn_a_quiet_governor_who_then_acts_and_rests():
+	Politics.reset()
+	var b: Brethren = Economy.model.brethren
+	var heat_was: float = b.heat.windward_passage
+	for id in Politics.officials_at("port_royal"):  # only the governor is free to change their mind
+		People.person(id).goal = "keep_order"
+		People.person(id).traits = ["corrupt"]
+	var gov := People.person(Politics.official("port_royal", "governor"))
+	gov.traits = []
+	gov.relations[s.captain] = 0
+	b.heat.windward_passage = 20.0
+	var pressure: float = b.pressure.get("england", 0.0)
+	var news := Politics.think_month(s)
+	assert_eq(gov.goal, "crush_piracy", "the prizes taken off their coast change what they want")
+	assert_gt(b.pressure.england, pressure, "they write home for men-of-war")
+	assert_true(news.any(func(t): return gov.name in t), "and it's news")
+	assert_string_contains(gov.mind, "men-of-war", "the why shows on their tooltip")
+	assert_false(Politics.think_month(s).any(func(t): return gov.name in t), "then they rest a while")
+	b.heat.windward_passage = heat_was
+	Politics.reset()
+
+
+func test_a_grudge_becomes_a_price_on_your_head():
+	Politics.reset()
+	s.career.pirate = true
+	var cmd := People.person(Politics.official("havana", "commander"))
+	cmd.relations[s.captain] = -60
+	Politics.think_month(s)
+	assert_eq(cmd.goal, "revenge")
+	assert_gt(s.get("bounty", {}).get("spain", 0.0), 0.0, "hatred is reason enough")
+	Politics.reset()
+
+
+func test_an_ambitious_governor_picks_the_war_target_near_home():
+	Politics.reset()
+	Factions.declare("england", "spain", "1800-01-01")
+	Factions.invasions = []
+	var gov := People.person(Politics.official("port_royal", "governor"))
+	gov.goal = "promotion"
+	gov.relations[s.captain] = 0
+	Politics.think_month(s)
+	var x: Array = Factions.invasions.filter(func(i): return i.by == "england")
+	assert_eq(x.size(), 1, "one squadron, not one per official")
+	assert_eq(Ports.port(x[0].port).faction, "spain")
+	Politics.reset()

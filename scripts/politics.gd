@@ -212,8 +212,171 @@ func monthly() -> void:
 			var death: float = c.official_death_chance * (c.summer_death_mult if Clock.date().month in [6, 7, 8, 9, 10] else 1.0)
 			if rng.randf() < death:
 				replace(port_id, role, "died of fever")
-			elif o.goal == "promotion" and People.value(o, "authority") >= 11 and rng.randf() < c.promotion_chance:
+			elif o.goal == "promotion" and People.value(o, "authority") >= 11 and rng.randf() < c.promotion_chance * (1.0 + o.get("deeds", 0) * c.minds.deed_promotion):
 				replace(port_id, role, "was promoted home")
+
+
+# ---- minds: officials who act ---------------------------------------------------------
+
+## Once a month every official looks at their waters and at you, may change their goal, and (when rested) does the
+## one thing that goal most calls for, if anything does. Rules: data/politics.json "minds". Returns the news, for tests.
+func think_month(s: Dictionary) -> Array:
+	var done := []
+	for port_id in Ports.state:
+		if Bases.is_town(port_id):
+			continue
+		var pick := []  # [score, id, act]: one official per town acts, whoever has the strongest reason
+		for id in officials_at(port_id):
+			if id == "" or not People.chars.has(id):
+				continue
+			var c := People.person(id)
+			_grow(c, port_id, s)
+			if c.get("rest_until", 0.0) <= Clock.day:
+				var best := _best_act(c, id, port_id, s)
+				if not best.is_empty() and (pick.is_empty() or best[0] > pick[0]):
+					pick = [best[0], id, best[1]]
+		if not pick.is_empty():
+			done.append(_act(People.person(pick[1]), pick[1], pick[2], port_id, s))
+	return done
+
+
+## The cruising ground this port sits on, or "".
+static func ground_of(port_id: String) -> String:
+	var b: Brethren = Economy.model.brethren
+	if not b.m.cfg.has("piracy"):
+		return ""
+	for g in b.grounds():
+		if port_id in b.cfg().grounds[g].ports:
+			return g
+	return ""
+
+
+## Prizes taken lately in this port's waters.
+static func heat_near(port_id: String) -> float:
+	var g := ground_of(port_id)
+	return Economy.model.brethren.heat.get(g, 0.0) if g != "" else 0.0
+
+
+static func _ground_name(port_id: String) -> String:
+	var g := ground_of(port_id)
+	return Economy.model.brethren.cfg().grounds[g].name if g != "" else "these waters"
+
+
+## What happens to someone changes what they want.
+func _grow(c: Dictionary, port_id: String, s: Dictionary) -> void:
+	var was: String = c.get("goal", "keep_order")
+	var why := ""
+	if c.relations.get(s.captain, 0) <= cfg().grudge and was != "revenge" and c.role != "broker":
+		c.goal = "revenge"
+		why = "Swore to see %s pay" % ShipStats.captain(s).name
+	elif was == "keep_order" and c.role != "broker" and not "corrupt" in c.traits and heat_near(port_id) >= cfg().minds.harden_heat:
+		c.goal = "crush_piracy"
+		why = "Turned against the pirates after the prizes taken in %s" % _ground_name(port_id)
+	if why != "":
+		c.history.append("%s, %s." % [why, Clock.date_string()])
+		c.mind = why + "."
+
+
+## [score, act]: what their goal most calls for now, if anything reaches act_at. [] if nothing does.
+func _best_act(c: Dictionary, id: String, port_id: String, s: Dictionary) -> Array:
+	var best := []
+	for act in cfg().minds.acts.get(c.get("goal", "keep_order"), []):
+		if not c.role in cfg().minds[act].roles:
+			continue
+		var score := _score(act, c, id, port_id, s) * rng.randf_range(cfg().minds.whim[0], cfg().minds.whim[1])
+		if score >= cfg().minds.act_at and (best.is_empty() or score > best[0]):
+			best = [score, act]
+	return best
+
+
+func _act(c: Dictionary, id: String, act: String, port_id: String, s: Dictionary) -> String:
+	var text := _do(act, c, id, port_id, s)
+	c.rest_until = Clock.day + 30.0 * cfg().minds.rest_months
+	c.deeds = c.get("deeds", 0) + 1
+	c.mind = "Lately: %s" % text
+	c.history.append("%s, %s." % [text.trim_suffix("."), Clock.date_string()])
+	Economy.add_news(text, port_id)  # sails out from their port: far off, you hear of it late
+	return text
+
+
+## How strongly this act calls to them now. 0: not at all.
+func _score(act: String, c: Dictionary, id: String, port_id: String, s: Dictionary) -> float:
+	var a: Dictionary = cfg().minds[act]
+	var f: String = Ports.port(port_id).faction
+	if f == "pirates" and act != "court_pirate":
+		return 0.0
+	var hate := maxf(0.0, -c.relations.get(s.captain, 0))
+	match act:
+		"price_on_head":
+			if not s.career.pirate or (hate <= 0.0 and s.get("bounty", {}).get(f, 0.0) <= 0.0):
+				return 0.0  # the pirates' prizes are no reason to hang you: you must have wronged them, or be hated
+			return minf(1.0, s.get("bounty", {}).get(f, 0.0) / a.per_price) + heat_near(port_id) * a.per_heat + hate / a.per_hate
+		"call_navy":
+			return heat_near(port_id) * a.per_heat
+		"court_pirate":
+			if not s.career.pirate or c.relations.get(s.captain, 0) <= cfg().grudge or favours(id, s) >= a.favours:
+				return 0.0
+			return s.reputation.notoriety / a.per_notoriety + s.gold / a.per_gold
+		"push_war":
+			var enemy := _war_target(f, port_id)
+			if not enemy.is_empty():
+				return a.at_war
+			var rival := _rival(f)
+			return 0.0 if rival == "" or Factions.at_war(f, rival) else Factions.tension[Factions._key(f, rival)] / Factions.cfg().war_at * a.peace_mult
+	return 0.0
+
+
+func _do(act: String, c: Dictionary, id: String, port_id: String, s: Dictionary) -> String:
+	var a: Dictionary = cfg().minds[act]
+	var f: String = Ports.port(port_id).faction
+	var who := "%s, %s of %s," % [c.name, cfg().roles[c.role].name.to_lower(), Ports.port(port_id).name]
+	match act:
+		"price_on_head":
+			var gold := roundf(a.gold + heat_near(port_id) * a.gold_per_heat)
+			Career.add_bounty(s, f, gold)
+			var why := "to settle an old score" if c.goal == "revenge" else "after the prizes taken in %s" % _ground_name(port_id)
+			return "%s has put %d gold more on the head of %s, %s." % [who, gold, ShipStats.captain(s).name, why]
+		"call_navy":
+			var b: Brethren = Economy.model.brethren
+			b.pressure[f] = b.pressure.get(f, 0.0) + a.pressure
+			return "%s has written home for men-of-war after the prizes taken in %s." % [who, _ground_name(port_id)]
+		"court_pirate":
+			add_favours(id, s, int(a.favours))
+			c.relations[s.captain] = c.relations.get(s.captain, 0) + int(a.opinion)
+			return "%s lets it be known that a blind eye can be had, for a captain of means." % who
+		"push_war":
+			var t := _war_target(f, port_id)
+			if not t.is_empty():
+				Factions.send(f, t[1], t[0])
+				return "%s has pressed for an attack on %s, and got it." % [who, Ports.port(t[0]).name]
+			var rival := _rival(f)
+			Factions.incident(f, rival, a.incident)
+			return "%s is stirring up trouble with %s, hoping for a war to make a name in." % [who, Career.fname(rival)]
+	return ""
+
+
+## [town, its nation]: the enemy town nearest this port that a squadron could take, if their nation has none out. [] if none.
+func _war_target(f: String, port_id: String) -> Array:
+	if Factions.invasions.any(func(x): return x.by == f):
+		return []
+	var best := []
+	for enemy in Factions.enemies_of(f):
+		for t in Ports.state:
+			if Factions._takeable(t, enemy) and (best.is_empty() or Economy.model.traffic.days(port_id, t) < Economy.model.traffic.days(port_id, best[0])):
+				best = [t, enemy]
+	return best
+
+
+## The nation this one is closest to war with.
+static func _rival(f: String) -> String:
+	var best := ""
+	for k in Factions.tension:
+		var pair := Array(k.split("|"))
+		if f in pair:
+			var other: String = pair[1 - pair.find(f)]
+			if best == "" or Factions.tension[k] > Factions.tension[Factions._key(f, best)]:
+				best = other
+	return best
 
 
 # ---- favours ------------------------------------------------------------------------

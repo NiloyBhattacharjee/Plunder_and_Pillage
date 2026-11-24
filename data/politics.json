@@ -91,5 +91,20 @@
   },
 
   "drift": 0.1, "goal_push": 2, "official_death_chance": 0.008, "summer_death_mult": 2.5, "promotion_chance": 0.02,
-  "scheme_chance": 0.15, "grudge": -30, "contract_influence": 6
+  "scheme_chance": 0.15, "grudge": -30, "contract_influence": 6,
+
+  "_minds": "Officials who act (Politics.think_month). On the 1st of each month every official whose rest is over scores the acts their goal allows against what is happening around them: heat = prizes taken lately on the cruising ground their port sits on (Brethren.heat), price = what their nation already has on your head, hate = how far their opinion of you is below 0. Each score is multiplied by a whim drawn each month (people in the same spot don't all move at once). The best act runs if its score reaches act_at, then they rest rest_months. Each act is news sailing out from their port, so you hear of it later the further off you are. Only the offices in an act's roles can do it, and only one official per town acts each month: whoever has the strongest reason. Goals change with experience: an official who comes to hate you (opinion <= grudge) swears revenge, and a quiet one whose waters stay hot (heat >= harden_heat) turns against piracy, unless corrupt or a broker. Every act is a deed, and deeds raise an ambitious official's chance of promotion home (promotion_chance x (1 + deeds x deed_promotion)).",
+  "minds": {
+    "act_at": 1.0, "whim": [0.6, 1.4], "rest_months": 3, "harden_heat": 6.0, "deed_promotion": 0.5,
+    "acts": {"crush_piracy": ["price_on_head", "call_navy"], "protect_trade": ["call_navy"], "revenge": ["price_on_head"],
+             "get_rich": ["court_pirate"], "promotion": ["push_war", "price_on_head"], "keep_order": []},
+    "_price_on_head": "Against a pirate their nation already wants, or one they hate. score = min(1, price/per_price) + heat x per_heat + hate/per_hate. Adds gold + heat x gold_per_heat to the bounty.",
+    "price_on_head": {"roles": ["governor", "commander"], "per_price": 800, "per_heat": 0.1, "per_hate": 30, "gold": 50, "gold_per_heat": 15},
+    "_call_navy": "score = heat x per_heat. Writes home for men-of-war: pressure on Brethren, which the navy answers a year or so late.",
+    "call_navy": {"roles": ["governor", "commander", "merchant"], "per_heat": 0.15, "pressure": 2.0},
+    "_court_pirate": "For a pirate they don't hate. score = notoriety/per_notoriety + gold/per_gold. Lets it be known a blind eye can be bought: a favour owed, opinion up.",
+    "court_pirate": {"roles": ["harbour_master", "broker", "merchant"], "per_notoriety": 30, "per_gold": 3000, "favours": 1, "opinion": 5},
+    "_push_war": "At war: score at_war, and a squadron fits out against the enemy town nearest their port. At peace: score = tension/war_at x peace_mult, and they stir up an incident.",
+    "push_war": {"roles": ["governor", "commander"], "at_war": 2.0, "peace_mult": 1.5, "incident": 10}
+  }
 }

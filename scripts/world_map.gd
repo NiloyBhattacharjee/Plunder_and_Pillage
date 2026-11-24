@@ -220,6 +220,7 @@ func _daily() -> void:
 			return
 	if Clock.date().day == 1:
 		Politics.leverage_month(s)
+		Politics.think_month(s)
 		for m in Bonds.monthly(s):
 			hud.show_message(m)
 	if s.has("succession") and not busy():
