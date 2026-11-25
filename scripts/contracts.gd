@@ -178,7 +178,7 @@ func _plan_intercept(c: Dictionary, t: Dictionary, td: Dictionary) -> bool:
 		if origins.is_empty():
 			return false
 		c.port = _pick(origins)
-		var dests := Ports.state.keys().filter(func(id): return id != c.port and Ports.port(id).faction != "pirates" and not Factions.at_war(c.target, Ports.port(id).faction))
+		var dests := Ports.home().filter(func(id): return id != c.port and Ports.port(id).faction != "pirates" and not Factions.at_war(c.target, Ports.port(id).faction))
 		if dests.is_empty():
 			return false
 		dests.sort_custom(func(a, b): return _pos(a).distance_to(_pos(c.port)) > _pos(b).distance_to(_pos(c.port)))
@@ -187,7 +187,7 @@ func _plan_intercept(c: Dictionary, t: Dictionary, td: Dictionary) -> bool:
 		var st := ShipStats.effective(enemy.type, enemy.upgrades)
 		enemy.cargo = {c.good: maxi(1, int(st.cargo * 0.6 / Market.weight(c.good)))}
 	else:
-		var lairs := _ports_of(c.target) if t.kind == "hunter" else Ports.state.keys().filter(func(id): return Ports.port(id).faction != "pirates")
+		var lairs := _ports_of(c.target) if t.kind == "hunter" else Ports.home().filter(func(id): return Ports.port(id).faction != "pirates")
 		c.port = _pick(lairs)
 	c.enemy = enemy
 	c.ship = enemy.name
@@ -198,7 +198,7 @@ func _plan_intercept(c: Dictionary, t: Dictionary, td: Dictionary) -> bool:
 ## A merchant of the employer's nation to see safely to a far port; c.count raiders will be after her.
 func _plan_escort(c: Dictionary, t: Dictionary, td: Dictionary, e: Dictionary) -> bool:
 	c.port = e.port
-	var dests: Array = Ports.state.keys().filter(func(id): return id != c.port and Ports.port(id).faction != "pirates" and not Factions.at_war(c.faction, Ports.port(id).faction))
+	var dests: Array = Ports.home().filter(func(id): return id != c.port and Ports.port(id).faction != "pirates" and not Factions.at_war(c.faction, Ports.port(id).faction))
 	if shipping != null:
 		dests = dests.filter(func(id): return not shipping._route(c.port, id).is_empty())
 	if dests.is_empty() or c.faction == "pirates":
@@ -625,7 +625,7 @@ func find(id: String) -> Dictionary:
 # ---- helpers and saving --------------------------------------------------------
 
 static func _ports_of(f: String) -> Array:
-	return Ports.state.keys().filter(func(id): return Ports.port(id).faction == f)
+	return Ports.state.keys().filter(func(id): return Ports.port(id).faction == f and not Ports.abroad(id))
 
 
 static func _pos(port_id: String) -> Vector2:

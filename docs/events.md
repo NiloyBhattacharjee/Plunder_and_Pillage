@@ -30,7 +30,7 @@ use the role's name or "they". Historical figures and strangers described in the
 | Field | Meaning |
 |---|---|
 | `title`, `text` | Shown in the dialog. `{captain}`, `{ship}`, `{port}` and every role are filled in. `{role_adj}` gives a nation's adjective. |
-| `where` | `sea` (daily roll at sea, the default), `port` (on arrival) or `any`. |
+| `where` | `sea` (daily roll at sea, the default), `port` (on arrival), `passage` (halfway across the Atlantic, data/events/atlantic.json) or `any`. |
 | `find` | Makes it a thing found at sea instead of a daily roll: it waits on the map as a marker of this kind (`cask`, `boat`, `wreck`, `wreckage`, `whale`, `bottle`, `castaway`, `fish`, `turtle`, `satchel`; see `rules.json` `finds`) and happens when you sail up to it. `find_near`: `sea` (deep water, the default) or `reef`. |
 | `weight` | Relative chance against other valid events (default 10). `weight_mods`: `[condition, multiplier]` pairs. |
 | `conditions` | All must hold. |
@@ -117,6 +117,7 @@ Going against a trait `rules.json` `nature.strain` times wears it away; leaning 
 | `want {r} done`, `want {r} ignored` | A person's want (data/wants.json) seen to (they're yours: opinion up, loyal) or let go (they remember) |
 | `maroons reveal [PORT]`, `maroons land`, `maroons betray`, `maroons +3` | The Maroons (scripts/maroons.gd): learn the landing nearest that port (or the port you're in); put ashore the people who asked for the hills (flag `freed_aboard`); sell their paths to the governor (the militia burns their town, crew of African descent never forget); their strength |
 | `map {port} 600 [fake\|maybe]`, `unmap here\|any\|PORT`, `dig`, `dig fail` | Treasure charts are things you hold (shown on the captain tab), not flags: gain one leading to a port (`maybe`: a forgery half the time, `rules.json` `events.map_fake_chance`); lose one (sold, stolen); dig at the port you're in: it pays its value unless it's a forgery; `dig fail` crosses off a spot, and after `events.map_digs` the chart is used up. `treasure_dig` fires whenever you anchor where a chart leads |
+| `slaver left` | You let a slave ship sail on with her people still aboard: crew opinion falls, hardest among hands of African descent (`economy.json` `slave_trade.left_opinion`). See docs/representation.md |
 | `deed fed_hungry` | The town you're in remembers what you did: its regard for you moves (data/port_life.json `_memory` `deeds`) |
 
 ## Stories

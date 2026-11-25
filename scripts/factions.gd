@@ -197,7 +197,7 @@ func send(by: String, from: String, id: String) -> void:
 
 static func _takeable(id: String, from: String) -> bool:
 	var p := Ports.port(id)
-	return p.faction == from and not "capital" in p.tags and p.size != "large" and not Bases.bases.has(id) \
+	return p.faction == from and not Ports.abroad(id) and not "capital" in p.tags and p.size != "large" and not Bases.bases.has(id) \
 		and not Factions.taken.any(func(t): return t.port == id) and not Factions.invasions.any(func(t): return t.port == id)
 
 

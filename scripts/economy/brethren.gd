@@ -17,6 +17,7 @@ var navy := {}             # nation -> men-of-war on station against the pirates
 var pressure := {}         # nation -> its recent merchant losses, fading
 var heat := {}             # ground -> recent prizes taken there: the navy hunts where it's hot
 var pardons: Array = []    # nations offering a pardon, set by the game each day (like Traffic.wars)
+var coves: Array = []      # your coves open to the Brethren (Settlement.havens), set each day: a company may work from one (co.cove)
 var tally := {"hanged": 0, "pardoned": 0, "killed": 0, "gone_east": 0, "prizes": 0}
 var events: Array = []     # [{text, port}]: news for the game to pass on
 var next_id := 1
@@ -100,7 +101,7 @@ func step(day: int, month: int, year: int) -> void:
 	var open := havens(year)
 	var prizes: float = heat.values().reduce(func(a, x): return a + x, 0.0)
 	var lure := 1.0 + minf(float(c.lure_max), prizes * float(c.lure_per_prize))  # good hunting draws men
-	var recruits := idle * float(c.recruit_rate) * (1.0 if not open.is_empty() else float(c.no_haven)) \
+	var recruits := idle * float(c.recruit_rate) * (1.0 if not open.is_empty() or not coves.is_empty() else float(c.no_haven)) \
 		* lerpf(1.0, float(c.war_recruit), mobilised()) * lure * m.world_mult("pirates")
 	idle -= recruits
 	pool += recruits
@@ -133,7 +134,7 @@ func _week(co: Dictionary, month: int, open: Array) -> void:
 		if not pardons.is_empty() and m.rng.randf() < float(c.pardon_take) * (1.0 + hunt):
 			lose(co.id, "pardon")
 			return
-		if open.is_empty() and m.rng.randf() < float(c.east_chance):
+		if open.is_empty() and coves.is_empty() and m.rng.randf() < float(c.east_chance):
 			lose(co.id, "east")
 			return
 		if m.rng.randf() < float(c.war_commission) * mobilised():
@@ -147,6 +148,8 @@ func _week(co: Dictionary, month: int, open: Array) -> void:
 			co.ground = _choose_ground(month)
 		if not co.haven in open:
 			co.haven = open[m.rng.randi() % open.size()] if not open.is_empty() else ""
+		if not co.get("cove", "") in coves:  # your cove: the only haven left, or a market some prefer to the old one
+			co.cove = coves[m.rng.randi() % coves.size()] if not coves.is_empty() and (open.is_empty() or m.rng.randf() < float(c.get("cove_take", 0.15))) else ""
 	if co.men < int(c.disband_below):
 		idle += co.men
 		companies.erase(co)

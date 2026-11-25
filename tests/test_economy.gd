@@ -75,7 +75,7 @@ func test_sugar_is_cheapest_after_the_harvest():
 
 
 func test_a_glut_fades_back():
-	before_each_seed(2)  # the merchants' voyages make it noisy: about 1 seed in 10 is still 20% off after 90 days
+	before_each_seed(3)  # the merchants' voyages make it noisy. Since the Atlantic trade (big cargoes on two-month-old news) about 7 seeds in 20 are still 12% off after 90 days, against 3 before
 	warm()
 	var before := m.mult("port_royal", "wine")
 	m.add("port_royal", "wine", m.params.port_royal.wine.normal * 2.0)

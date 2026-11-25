@@ -107,7 +107,7 @@ func test_every_choice_of_every_event_resolves():
 		for port in ["", "port_royal", "nassau"]:
 			for id in Events.events:
 				var ev: Dictionary = Events.events[id]
-				if not Events._fits(ev, "port" if port != "" else "sea") and not (port == "" and Events._fits(ev, "find")):
+				if not Events._fits(ev, "port" if port != "" else "sea") and not (port == "" and (Events._fits(ev, "find") or Events._fits(ev, "passage"))):
 					continue
 				for i in ev.choices.size():
 					rich_state(kind)

@@ -54,7 +54,7 @@
     "_tramp_chance": "After unloading, a ship looks for a cargo where she is (so small ports get ships too) or goes home.",
     "tag_sailings": {"free_port": 3.0, "capital": 1.3, "plantation": 0.8, "fair_town": 0.6, "pirate_haven": 0.4},
     "cargo_tons": [50, 160],
-    "speed_nm_per_day": 90, "detour": 1.3, "loading_days": 2,
+    "speed_nm_per_day": 90, "news_days": 45, "_news_days": "A ship carries what her port has heard of the others, if it is no older than this: older than the estimate horizon (information.estimate_tau_days), it is worth little to a port that hears more often.", "detour": 1.3, "loading_days": 2,
     "min_margin": 0.2,
     "max_share_of_dest": 0.35,
     "choose_among": 3,
@@ -167,6 +167,18 @@
     "regrow": 0.25, "war_cut": 0.7, "limits": [0.2, 3.0], "haven_ashore": 0.35, "keep": 5
   },
 
+  "_slave_trade": "The Atlantic slave trade (scripts/economy/slave_trade.gd), shown in the world and never traded (docs/representation.md): the people aboard are never cargo, a price or a number. forts: voyages a year from each fort, to the plantation ports of its nation (and the asiento_ports while its nation holds the asiento). days_mult: the Middle Passage was slower than a merchant's run. rising_chance: a share of voyages saw a rising; rising_won: the share of those that took the ship.",
+  "slave_trade": {
+    "forts": {"cape_coast": 14, "elmina": 10, "goree": 8},
+    "asiento": [{"from": 1701, "until": 1713, "faction": "france"}, {"from": 1713, "until": 1739, "faction": "england"}],
+    "asiento_ports": ["cartagena", "portobelo", "havana", "veracruz"],
+    "days_mult": 1.3, "rising_chance": 0.1, "rising_won": 0.15, "left_opinion": [12, 3], "sunk_opinion": [15, 5],
+    "ship_names": ["Africa", "Guinea", "Hope", "Liberty", "Fortune", "Mary", "Expedition", "Prosperity", "Duke of York", "Royal African", "Charlotte", "Postillion", "Diligent", "Union", "Bonne Mère", "Saint-Jacques", "Witte Paard", "Neptunus"],
+    "rising_text": {
+      "won": "Word from the sea: the people held aboard the {ship}, out of {fort}, rose against the crew in mid-ocean and took her. Nobody knows where they sailed her.",
+      "lost": "Word from the sea: the people held aboard the {ship}, out of {fort}, rose against the crew in mid-ocean. The crew put the rising down, and many died for it."
+    }
+  },
   "piracy": {
     "_comment": "The pirates as a population (scripts/economy/brethren.gd). Weekly rates. Men come from the idle seamen of the Americas: wars take men into the navies and privateers (war_service, enlist_rate) and the peace pays them off (pay_off_rate), so a long war ends in a crowd of hungry sailors. A war draws men in over war_ramp_weeks: a short war barely dents piracy, a long one empties the seas. Recruits gather at the havens and form a company at new_crew men. Calibrate with tools/economy_sim.gd, which prints the numbers each year: roughly 1,500 men at sea around 1680 (the last of the buccaneers), a few hundred in the war years after 1702, about 2,000 at the peak in 1717-1722, under 200 by 1726 (Marcus Rediker, Villains of All Nations).",
     "start": {"year": 1680, "men": 1400, "idle": 2500},

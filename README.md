@@ -63,7 +63,10 @@ Like a Paradox game, the ship's log keeps a record of every week: your gold, wha
 - **Three starting eras**: 1680 (the last buccaneers), 1713 (the Peace of Utrecht) or 1715 (the Republic of Pirates). History before your start is already in place, and the captains of the time are already at sea.
 - **The real captains of the age**: de Graaf and Grammont, Hornigold, Bellamy, La Buse, Blackbeard, Vane, Calico Jack and Black Bart Roberts arrive on their real dates and live their histories (new ships, pardons, deaths), unless you cross their wake.
 - **Treasure charts** you keep in your coat until you drop anchor where they lead. Some are forgeries, a crewman might steal one, and a merchant's agent might buy it.
-- **Bases:** hidden coves you can build up with storehouses, shipyards and forts.
+- **The whole Atlantic:** sail out through the Gulf Stream or the trade winds on a crossing of weeks, with scurvy, calms and gales, to London, Bristol, Cádiz, Nantes, Amsterdam, Boston, New York, Charles Town, St. John's, the forts of the Guinea coast and the pirates' river at Sierra Leone. They trade with the Caribbean like any port: cloth is cheap in London and sugar dear.
+- **The slave trade, shown and never traded:** slave ships sail from the African forts for the plantations, the people aboard rise against their crews, and if you take one, the freed people decide what happens to them.
+- **Officials with minds of their own:** governors raise the price on your head, write home for men-of-war, push for attacks on their neighbours, or let it be known a blind eye can be bought. What happens to them changes what they want.
+- **Bases:** hidden coves you can build up with storehouses, shipyards and forts. Open one to the Brethren and it becomes a haven: pirate companies sell their plunder there, people settle, and named settlers ask things of you. Run supplies between your bases. Rival captains make bases of their own, which you can find, raid or sell to a governor.
 - **A squadron of up to four consorts,** each with a captain who may desert you.
 - **Wars between the nations,** with invasion squadrons you can catch at sea.
 - **Ambitions and titles, endings** (retire rich, a governorship, a pirate republic, or the noose), and an **ironman** mode.

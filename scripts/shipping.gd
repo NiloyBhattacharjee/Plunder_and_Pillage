@@ -186,13 +186,13 @@ func _new_goal(n: Dictionary) -> void:
 			var a: Vector2 = world.anchorages[ports[rng.randi() % ports.size()]] if not ports.is_empty() else n.pos
 			goal = terrain.nearest_sea(a + Vector2(rng.randf_range(-90, 90), rng.randf_range(-90, 90)))
 		"hunter":
-			goal = world.ship.position if rng.randf() < 0.6 else world.anchorages[Ports.state.keys()[rng.randi() % Ports.state.size()]]
+			goal = world.ship.position if rng.randf() < 0.6 else world.anchorages[Ports.home().pick_random()]
 		_ when n.has("company") and not br.find(n.company).is_empty():  # a company works its cruising ground
 			var ports: Array = br.cfg().grounds[br.find(n.company).ground].ports.filter(func(id): return world.anchorages.has(id))
 			var a: Vector2 = world.anchorages[ports[rng.randi() % ports.size()]]
 			goal = terrain.nearest_sea(a + Vector2(rng.randf_range(-120, 120), rng.randf_range(-120, 120)))
 		_:  # pirates lurk somewhere along a trade route
-			var ids: Array = Ports.state.keys()
+			var ids: Array = Ports.home()
 			var a: Vector2 = world.anchorages[ids[rng.randi() % ids.size()]]
 			var b: Vector2 = world.anchorages[ids[rng.randi() % ids.size()]]
 			goal = terrain.nearest_sea(a.lerp(b, rng.randf_range(0.3, 0.7)))
@@ -256,7 +256,7 @@ func _spawn_trader(kind: String) -> void:
 	var cargo := {}
 	if kind == "smuggler":
 		var markets: Array = Ports.state.keys().filter(func(id): return not Ports.state[id].laws.contraband.is_empty() and world.anchorages.has(id))
-		var homes: Array = Ports.state.keys().filter(func(id): return Ports.port(id).faction in ["dutch", "england"] and world.anchorages.has(id))
+		var homes: Array = Ports.state.keys().filter(func(id): return Ports.port(id).faction in ["dutch", "england"] and world.anchorages.has(id) and not Ports.abroad(id))
 		if markets.is_empty() or homes.is_empty():
 			return
 		dest = markets[rng.randi() % markets.size()]
@@ -267,7 +267,7 @@ func _spawn_trader(kind: String) -> void:
 		var goods: Array = Ports.state[dest].laws.contraband
 		cargo[goods[rng.randi() % goods.size()]] = 1
 	else:
-		var ports: Array = Ports.state.keys().filter(func(id): return Ports.port(id).faction != "pirates" and world.anchorages.has(id))
+		var ports: Array = Ports.state.keys().filter(func(id): return Ports.port(id).faction != "pirates" and world.anchorages.has(id) and not Ports.abroad(id))
 		if ports.size() < 2:
 			return
 		origin = ports[rng.randi() % ports.size()]
@@ -336,7 +336,7 @@ func _invasions() -> void:
 ## A warship of nation f sailing from its nearest port to attack town `to`, announced in the taverns. {} if
 ## no port of theirs has a route there.
 func _sail_against(f: String, to: String, type: String, label: String) -> Dictionary:
-	var homes: Array = (_ports_of(f) if f != "pirates" else Ports.state.keys().filter(func(p): return Ports.port(p).get("fence", false)))
+	var homes: Array = (_ports_of(f) if f != "pirates" else Ports.home().filter(func(p): return Ports.port(p).get("fence", false)))
 	homes = homes.filter(func(p): return p != to and not Bases.bases.has(p) and world.anchorages.has(p) and not _route(p, to).is_empty())
 	if homes.is_empty():
 		return {}
@@ -490,7 +490,7 @@ func _mirror(player_pos: Vector2) -> void:
 	var eyes: Array = [player_pos] + Bases.watch_points()
 	var drawn := {}
 	for n in npcs.duplicate():
-		if not n.has("voyage"):
+		if not n.has("voyage") and not n.has("slaver"):
 			continue
 		if eyes.all(func(p): return n.pos.distance_to(p) > near * 2.0):
 			remove(n)
@@ -502,9 +502,57 @@ func _mirror(player_pos: Vector2) -> void:
 		var path := _route(v.origin, v.dest)
 		if path.is_empty():
 			continue
-		var at := _along(world.anchorages[v.origin], path, Economy.progress(v))
+		var f := Economy.progress(v)
+		if Ports.abroad(v.origin) or Ports.abroad(v.dest):  # crossing the Atlantic: on the map only between port and gate
+			if Ports.abroad(v.origin) and Ports.abroad(v.dest):
+				continue
+			var leg := minf(1.0, _length(world.anchorages[v.origin], path) / nm(Economy.model.traffic.cfg().speed_nm_per_day) / maxf(1.0, v.arrive - v.depart))
+			f = f / leg if Ports.abroad(v.dest) else (f - (1.0 - leg)) / leg
+			if f < 0.0 or f > 1.0:
+				continue
+		var at := _along(world.anchorages[v.origin], path, f)
 		if eyes.any(func(p): return at[0].distance_to(p) < near):
 			spawn_voyage(v, at[0], at[1])
+	_mirror_slavers(eyes, near)
+
+
+## Slave ships on the last leg of the Middle Passage, from the gate she came in by to the port she's bound for.
+func _mirror_slavers(eyes: Array, near: float) -> void:
+	var drawn := {}
+	for n in npcs:
+		if n.has("slaver"):
+			drawn[n.slaver] = true
+	for v in Economy.model.slavers.voyages:
+		if drawn.has(v.id) or not world.anchorages.has(v.fort) or not world.anchorages.has(v.dest):
+			continue
+		var path := _route(v.fort, v.dest)
+		if path.is_empty():
+			continue
+		var f := clampf(float(Economy.model.day - v.depart) / maxf(1.0, v.arrive - v.depart), 0.0, 1.0)
+		var leg := minf(1.0, _length(world.anchorages[v.fort], path) / nm(Economy.model.traffic.cfg().speed_nm_per_day) / maxf(1.0, v.arrive - v.depart))
+		f = (f - (1.0 - leg)) / leg
+		if f < 0.0 or f > 1.0:
+			continue
+		var at := _along(world.anchorages[v.fort], path, f)
+		if eyes.any(func(p): return at[0].distance_to(p) < near):
+			var e := Encounters.generate(v.faction, rng, "merchant")
+			e.cargo = {}  # the people in her hold are not cargo (docs/representation.md)
+			e.name = v.ship
+			e.slaver = true
+			e.label = "slave ship"
+			var n := _add("merchant", e, at[0], Data.table("factions")[v.faction].flag)
+			n.slaver = v.id
+			n.dest = v.dest
+			n.route = at[1]
+
+
+static func _length(start: Vector2, path: PackedVector2Array) -> float:
+	var total := 0.0
+	var prev := start
+	for p in path:
+		total += prev.distance_to(p)
+		prev = p
+	return total
 
 
 ## The point a fraction f of the way along a route, and the rest of the route from there: [Vector2, PackedVector2Array].
@@ -579,7 +627,7 @@ func spawn(kind: String, f: String, ekind := "", type := "") -> Dictionary:
 	if kind == "pirate" and rng.randf() < Data.rules.flags.npc_false_flag_chance:
 		var nat: Array = Career.nations()
 		flag = Data.table("factions")[nat[rng.randi() % nat.size()]].flag  # honest-looking colours
-	var homes := _ports_of(f) if f != "pirates" else Ports.state.keys().filter(func(id): return Ports.port(id).get("fence", false))
+	var homes := _ports_of(f) if f != "pirates" else Ports.home().filter(func(id): return Ports.port(id).get("fence", false))
 	var n := _add(kind, e, world.anchorages[homes[rng.randi() % homes.size()]], flag)
 	_new_goal(n)
 	return n
@@ -680,7 +728,7 @@ func find(id: String) -> Dictionary:
 
 
 func _ports_of(f: String) -> Array:
-	return Ports.state.keys().filter(func(id): return Ports.port(id).faction == f)
+	return Ports.state.keys().filter(func(id): return Ports.port(id).faction == f and not Ports.abroad(id))
 
 
 # ---- drawing: sprites for ships within sight -------------------------------

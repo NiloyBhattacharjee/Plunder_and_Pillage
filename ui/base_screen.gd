@@ -156,6 +156,7 @@ func _build_cove(b: Dictionary, s: Dictionary) -> void:
 		UIKit.label(rrow, "%d sailors at the tavern looking for a berth.   " % int(b.recruits))
 		var h := UIKit.button(rrow, "Hire 5 (%d gold)" % (5 * Data.rules.tavern.hire_cost), func(): _act(func(): return Bases.recruit(s, base_id, 5, ship.stats.crew_max)))
 		h.disabled = b.recruits < 1
+	_build_settlement(box, b, s)
 	if Bases.has(b, "stockade"):
 		UIKit.label(box, "")
 		UIKit.label(box, "Stockade", "Hostages left here are ransomed through a go-between: half again what a port pays, after %d days." % Bases.building("stockade").ransom_days, Style.c("header"))
@@ -163,6 +164,60 @@ func _build_cove(b: Dictionary, s: Dictionary) -> void:
 			UIKit.label(box, "%s: ransom due in %d days." % [People.person(h.id).name, maxi(0, int(h.day - Clock.day))])
 		for i in s.hostages.size():
 			UIKit.button(box, "Lock up %s" % People.person(s.hostages[i].id).name, func(): _act(func(): return Bases.leave_hostage(s, base_id, i)))
+
+
+## The haven, the people who live here, the settlers' asks, and supply runs (scripts/settlement.gd).
+func _build_settlement(box: VBoxContainer, b: Dictionary, s: Dictionary) -> void:
+	var C: Dictionary = Settlement.cfg()
+	if not b.has("town"):
+		UIKit.label(box, "")
+		var hrow := UIKit.row(box)
+		var cos := Settlement.companies_at(base_id) if base_id in Settlement.havens() else []
+		var men: float = cos.reduce(func(a, co): return a + co.men, 0.0)
+		UIKit.label(hrow, ("Open to the Brethren: %d compan%s here, %d men, paying about %s a day.   " % [cos.size(), "y" if cos.size() == 1 else "ies", men, Market.fmt(men * C.haven.fee_per_man)])
+				if b.get("haven", false) else "Closed to the Brethren.   ",
+			"Open your cove and pirate companies come to sell their plunder and drink it: the treasury takes %s a man a day, the tavern fills with sailors, and people come to live off the trade.\nBut every company that knows the way gives the cove away a little more (visibility +%.2f a day each), and the navy hunts where the pirates are.\nWhen there's no pirate port left to go to, they all come to you." % [Market.fmt(C.haven.fee_per_man), C.haven.visibility_per_company], Style.c("header"))
+		var why := Settlement.haven_problem(base_id)
+		var hb := UIKit.button(hrow, "Close it" if b.get("haven", false) else "Open it", func(): _act(func(): return Settlement.set_haven(base_id, not b.get("haven", false))), why)
+		hb.disabled = why != "" and not b.get("haven", false)
+		var parts := Settlement.people_parts(b, base_id)
+		UIKit.label(box, "About %d people live here." % b.get("people", 0.0),
+			"Folk who live off the base: carpenters, cooks, traders, drinkers, families. The number drifts toward what the place can support:\n%s\nHunger and raids drive them off. Enough of them, and someone worth knowing settles." % (
+				"\n".join(parts.map(func(p): return "  %s: %d" % [p[0], p[1]])) if not parts.is_empty() else "  Nothing here yet to live off."))
+		for cid in Settlement.settlers(b):
+			var c := People.person(cid)
+			var t: Dictionary = C.settlers.trades[c.trade]
+			var srow := UIKit.row(box)
+			srow.add_child(Portrait.make(c, "captain", 36))
+			UIKit.label(srow, "%s, %s.  Opinion of you %+d.  %s" % [c.name, t.name.to_lower(), c.get("opinion", 0), t.boon_text + "." if c.get("opinion", 0) >= 0 else "Sulking: no help from them."],
+				People.describe(c) + "\nBelow %d they leave, and tell anyone who'll listen how to find this place." % C.settlers.leave_at)
+		for i in b.get("asks", []).size():
+			var a: Dictionary = b.asks[i]
+			var arow := UIKit.row(box)
+			UIKit.label(arow, "  %s %s (%d days left).   " % [People.person(a.who).name, C.asks[a.ask].text, maxi(0, int(a.due - Clock.day))])
+			var gp := Settlement.grant_problem(b, i)
+			var gb := UIKit.button(arow, "Grant it", func(): _act(func(): return Settlement.grant(base_id, i)), gp if gp != "" else "Opinion %+d, loyalty %+d." % [C.asks[a.ask].opinion, C.asks[a.ask].loyalty])
+			gb.disabled = gp != ""
+			UIKit.button(arow, "Refuse", func(): _act(func(): return Settlement.refuse(base_id, i)), "Opinion %+d, loyalty %+d." % [C.refused.opinion, C.refused.loyalty])
+	var others: Array = Bases.bases.keys().filter(func(o): return o != base_id)
+	if others.is_empty():
+		return
+	UIKit.label(box, "")
+	UIKit.label(box, "Supply runs", "Every %d days a ship laid up at this dock carries %d of a good to another of your bases. One in %d never arrives." % [
+		C.supply.every_days, C.supply.qty, int(round(1.0 / C.supply.loss))], Style.c("header"))
+	for i in b.get("runs", []).size():
+		var r: Dictionary = b.runs[i]
+		var rrow := UIKit.row(box)
+		UIKit.label(rrow, "  %d %s to %s, every %d days (%d days' sailing).   " % [r.qty, Data.table("goods")[r.good].name.to_lower(), Bases.bases[r.to].name, r.every, Settlement.days_between(base_id, r.to)])
+		UIKit.button(rrow, "Stop", func(): _act(func(): return Settlement.stop_run(base_id, i)))
+	var goods: Array = b.storage.keys().filter(func(g): return b.storage[g] >= 1.0)
+	var why_not := Settlement.run_problem(base_id)
+	for o in others:
+		var orow := UIKit.row(box)
+		UIKit.label(orow, "  To %s:  " % Bases.bases[o].name)
+		for g in goods.slice(0, 6):
+			var sb := UIKit.button(orow, Data.table("goods")[g].name, func(): _act(func(): return Settlement.start_run(base_id, o, g)), why_not)
+			sb.disabled = why_not != ""
 
 
 # ---- buildings -----------------------------------------------------------------------

@@ -19,6 +19,7 @@ var params := {}     # port -> good -> {make, use, imp, exp, normal}, fixed by t
 var traffic: Traffic # merchant voyages between the ports (scripts/economy/traffic.gd)
 var fleets: Fleets   # the treasure fleets and sugar convoys (scripts/economy/fleets.gd)
 var shocks: Shocks   # random shocks: hurricanes, epidemics, fires... (scripts/economy/shocks.gd)
+var slavers: SlaveTrade # the slave ships from the African forts, shown and never traded (scripts/economy/slave_trade.gd)
 var brethren: Brethren # the pirates: companies, the idle seamen they recruit from, the navy against them (scripts/economy/brethren.gd)
 var towns: Towns     # how many people live in each port, and why it changes (scripts/economy/towns.gd)
 var world := {}      # key -> {value, until}: world conditions in force (pirates, sailings:<faction or port>,
@@ -62,6 +63,7 @@ func setup(goods_t: Dictionary, ports_t: Dictionary, cfg_t: Dictionary, seed: in
 	fleets = Fleets.new(self)
 	shocks = Shocks.new(self)
 	brethren = Brethren.new(self)
+	slavers = SlaveTrade.new(self)
 
 
 func traded() -> Array:
@@ -85,7 +87,7 @@ func _params(id: String, g: String) -> Dictionary:
 		imp *= o.tag_import.get(t, 1.0)
 		ex *= o.tag_export.get(t, 1.0)
 		rex *= o.tag_export.get(t, 1.0)
-	use *= p.get("use", {}).get(g, 1.0)
+	use *= p.get("use", {}).get(g, 1.0) * p.get("trade_share", 1.0)  # an Atlantic port: only its Caribbean trade
 	imp *= p.get("import_mult", 1.0)  # a port's own extra supply (Portobelo's mule trains from Panama)
 	var make := float(p.make.get(g, 0.0)) * towns.labour(id)
 	return {"make": make, "use": use, "imp": imp, "exp": ex, "rex": rex, "normal": maxf(cfg.min_normal, (make + use) * cfg.cover_days)}
@@ -192,6 +194,7 @@ func step(month: int, year := -1) -> void:
 	traffic.step(day, month)
 	fleets.step(day, month, year if year > 0 else 1000 + day / 365)
 	brethren.step(day, month, year if year > 0 else 1000 + day / 365)
+	slavers.step(day, year if year > 0 else 1000 + day / 365)
 	if day % 7 == 0:
 		towns.week()
 	for id in stock:
@@ -392,7 +395,7 @@ func breakdown(id: String, g: String, month: int, spread_mult := 1.0, duty := 0.
 
 func save_state() -> Dictionary:
 	return {"rng": str(rng.state), "stock": stock, "mods": mods, "history": history, "day": day, "traffic": traffic.save_state(),
-		"fleets": fleets.save_state(), "world": world, "brethren": brethren.save_state(), "towns": towns.save_state()}
+		"fleets": fleets.save_state(), "world": world, "brethren": brethren.save_state(), "towns": towns.save_state(), "slavers": slavers.save_state()}
 
 
 func load_state(d: Dictionary) -> void:
@@ -416,5 +419,6 @@ func load_state(d: Dictionary) -> void:
 		world[k].until = int(world[k].until)
 	if d.has("brethren"):
 		brethren.load_state(d.brethren)
+	slavers.load_state(d.get("slavers", {}))
 	if d.has("towns"):
 		towns.load_state(d.towns)

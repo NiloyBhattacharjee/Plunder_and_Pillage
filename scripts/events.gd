@@ -25,7 +25,7 @@ const VERBS := {  # verb: [min args, max args]
 	"reveal_cove": [0, 0], "intel": [1, 1], "base_gold": [2, 2], "base_loyalty": [2, 2], "base_visibility": [2, 2], "base_store": [3, 3],
 	"base_garrison": [2, 2], "base_damage": [1, 1], "base_lost": [1, 1], "bounty": [2, 2],
 	"patrols": [2, 2], "town": [2, 2], "deed": [1, 1], "want": [2, 2], "supply": [2, 2], "settle": [1, 1], "marque": [1, 1], "morale": [2, 2], "calm": [1, 1], "expose": [0, 0], "mutiny": [0, 0], "depose": [0, 0], "share": [1, 1], "confidence": [0, 0], "event": [1, 3], "fight": [1, 3], "market": [2, 2], "time": [1, 1], "ending": [2, 2], "focus": [1, 1],
-	"maroons": [1, 2], "map": [2, 3], "unmap": [1, 1], "dig": [0, 1],
+	"maroons": [1, 2], "map": [2, 3], "unmap": [1, 1], "dig": [0, 1], "slaver": [1, 1],
 }
 const SOURCES := ["crew", "officer", "captain", "new", "port", "here", "nation", "enemy", "good", "number", "ringleader",
 	"official", "creditor", "enemy_official", "council", "ally", "rival", "captain_npc", "base"]
@@ -126,9 +126,20 @@ func pick_find(ctx: Dictionary, exclude := []) -> Dictionary:
 	return _draw("find", ctx, exclude)
 
 
+## The crew feel something done to people like theirs: those of African descent by `mine`, the rest by `others`.
+static func grieve(s: Dictionary, mine: int, others: int, why: String) -> String:
+	var hurt := 0
+	for cid in s.crew:
+		var p := People.person(cid)
+		var theirs: bool = p.get("nationality", "") == "afro_caribbean"
+		Crew.feel(s, p, mine if theirs else others, why)
+		hurt += 1 if theirs else 0
+	return "%d of your crew won't forget it" % hurt if hurt > 0 else ""
+
+
 ## A particular event, bound to the situation now (for finds placed by the world: wreckage after a battle).
-func instance_of(id: String, ctx: Dictionary) -> Dictionary:
-	return _instance(events[id], ctx, {}) if events.has(id) else {}
+func instance_of(id: String, ctx: Dictionary, vars := {}) -> Dictionary:
+	return _instance(events[id], ctx, vars) if events.has(id) else {}
 
 
 ## A weighted pick among the events that could happen here now.
@@ -242,7 +253,7 @@ func _bind(spec: Dictionary, ctx: Dictionary, vars: Dictionary) -> Variant:
 		"captain_npc": cands = Bonds.roster()
 		"base": cands = Bases.bases.keys()
 		"here": cands = [ctx.port] if ctx.port != "" else []
-		"port": cands = Ports.state.keys()
+		"port": cands = Ports.home()
 		"nation": cands = Career.nations()
 		"enemy": cands = Career.nations().filter(func(f): return Factions.at_war(f, _home(s)) or Factions.at_war(f, s.career.marque))
 		"good": cands = Data.table("goods").keys().filter(func(g): return g != "food" and g != "water")
@@ -838,6 +849,8 @@ func _apply(o: String, ctx: Dictionary, vars: Dictionary, res: Dictionary) -> St
 			if mid != "":
 				Maroons.bands[mid].strength = clampf(Maroons.bands[mid].strength + float(a[1]), 0.0, 100.0)
 			return ""
+		"slaver":  # left: you let a slave ship go with her people still in the hold. The crew of African descent take it hardest
+			return grieve(s, -int(Data.table("economy").slave_trade.left_opinion[0]), -int(Data.table("economy").slave_trade.left_opinion[1]), "Let the slave ship go")
 		"map":  # a treasure chart into your sea chest: map PORT VALUE [fake|maybe]. A forgery looks like any other chart.
 			s.maps = s.get("maps", [])
 			if s.maps.any(func(m): return m.port == a[1]):

@@ -20,7 +20,7 @@ func after_each():
 ## A voyage at sea with a route the map can draw.
 func voyage() -> Dictionary:
 	for v in Economy.voyages():
-		if not world.shipping._route(v.origin, v.dest).is_empty():
+		if not Ports.abroad(v.origin) and not Ports.abroad(v.dest) and not world.shipping._route(v.origin, v.dest).is_empty():  # all of her on the map
 			return v
 	return {}
 

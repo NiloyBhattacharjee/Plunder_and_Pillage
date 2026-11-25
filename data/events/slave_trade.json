@@ -1,0 +1,21 @@
+{
+  "_comment": "The slave trade (scripts/economy/slave_trade.gd), written to docs/representation.md: the people aboard are people with their own choices, never cargo; one of them has a name; the captain's choice sets up the scene and theirs ends it; no reward for cruelty (every choice takes the same plunder, and letting her go only costs); freeing them costs too, with the nation whose planters were waiting for her. slaver_taken runs when you take a slave ship (WorldMap._on_combat_finished), with {nation} her nation. Needs the sensitivity read like every other event touching slavery.",
+  "slaver_taken": {
+    "title": "The people in the hold",
+    "text": "Her crew sit under guard by the mainmast, and the gratings are off the hold. {freed} is the first to climb out into the light, and speaks for the others: people taken on the coast, weeks at sea in the dark below. Nobody aboard her owns them now. They have their own ideas about what happens next, and they watch you to see what yours are.",
+    "where": "any",
+    "chain_only": true,
+    "roles": {"freed": {"from": "new", "nation": "freed"}, "nation": {"from": "nation"}},
+    "choices": [
+      {"text": "Strike off the irons, and ask what they mean to do", "voice": {"decent": 2},
+       "outcomes": ["gold +80", "crew +6", "hire {freed}", "honour +2", "relation {nation} -8", "bounty {nation} +300", "flag freed_aboard 120"],
+       "result": "{freed} and some of the others sign the articles for a full share, like anyone. Most want a shore of their own choosing. Some have heard of the Maroons in the hills and will stay aboard until you find a landing. A few take the slaver's longboat for the coast they can see, and don't ask your leave. Her owners will hear what you did."},
+      {"text": "Give them the ship herself, and her stores", "voice": {"decent": 2, "bold": 1},
+       "outcomes": ["gold +80", "honour +3", "relation {nation} -10", "bounty {nation} +300", "relation maroons +5"],
+       "result": "There are people among them who handled boats on the coast. Your carpenter shows them the rest, and {freed} takes the helm as if born to it. She sails before evening under no flag, and where she goes is their own business. Her owners will hear what you did."},
+      {"text": "Take her powder and purse, and let her sail on", "voice": {"decent": -3},
+       "outcomes": ["gold +80", "slaver left", "honour -2"],
+       "result": "The gratings go back on. She sails on with everyone still in the hold, and nobody on your deck speaks of it. Everybody heard it, though."}
+    ]
+  }
+}

@@ -172,5 +172,123 @@
     "make": {"hides": 3, "naval_stores": 2, "food": 15},
     "import_mult": 1.6, "shipyard": 1, "sailors": 6, "ships_for_sale": ["sloop"],
     "laws": {"contraband": ["cloth", "tools", "wine", "gunpowder"], "vigilance": 0.5}
+  },
+
+  "london": {
+    "name": "London", "faction": "england", "lat": 51.507, "lon": -0.09, "size": "large", "gates": ["north", "east"],
+    "offices": ["harbour_master", "merchant"],
+    "description": "The Pool of London, a forest of masts below the bridge. Every sugar planter owes money to someone here, and the Admiralty hangs pirates at Execution Dock at low tide.",
+    "population": 575000, "trade_share": 0.012, "tags": ["capital"],
+    "make": {"cloth": 40, "tools": 25, "gunpowder": 12, "wine": 10, "naval_stores": 8},
+    "shipyard": 2, "sailors": 200, "ships_for_sale": ["sloop", "brigantine", "brig", "fluyt", "frigate"], "recruits": {"skills": {"seamanship": 1}, "traits": {"veteran": 0.1}},
+    "laws": {"enumerated": [], "contraband": [], "vigilance": 0.7}
+  },
+  "bristol": {
+    "name": "Bristol", "faction": "england", "lat": 51.45, "lon": -2.59, "size": "medium", "gates": ["north", "east"],
+    "offices": ["harbour_master", "merchant"],
+    "description": "Up the Avon on the tide, where the sugar houses smoke over the quays. Its merchants send ships to the Guinea coast, then to the islands, then home with sugar.",
+    "population": 20000, "trade_share": 0.15, "tags": [],
+    "make": {"cloth": 10, "tools": 8, "gunpowder": 4, "food": 20},
+    "shipyard": 2, "sailors": 60, "ships_for_sale": ["sloop", "brigantine", "brig"], "recruits": {"skills": {}, "traits": {"green": 0.15}},
+    "laws": {"enumerated": [], "contraband": [], "vigilance": 0.6}
+  },
+  "cadiz": {
+    "name": "Cádiz", "faction": "spain", "lat": 36.53, "lon": -6.29, "size": "large", "gates": ["east"], "fleets_only": true,
+    "offices": ["harbour_master", "merchant", "priest"],
+    "description": "The white city on its spit of sand, where the treasure fleets come home. Every bale for the Indies is weighed and taxed here, and half of it belongs to foreigners under Spanish names.",
+    "population": 60000, "trade_share": 0.08, "tags": ["fair_town"],
+    "make": {"wine": 25, "cloth": 20, "tools": 10, "gunpowder": 8},
+    "shipyard": 2, "sailors": 80, "ships_for_sale": ["brigantine", "brig", "galleon"], "recruits": {"skills": {}, "traits": {"devout": 0.1}},
+    "laws": {"enumerated": [], "contraband": [], "vigilance": 0.6}
+  },
+  "nantes": {
+    "name": "Nantes", "faction": "france", "lat": 47.22, "lon": -1.55, "size": "medium", "gates": ["north", "east"],
+    "offices": ["harbour_master", "merchant"],
+    "description": "On the Loire, where the shipowners of the Fosse build their stone houses on the West India trade. Their ships go out to Africa and the islands and come back heavy with sugar.",
+    "population": 40000, "trade_share": 0.1, "tags": [],
+    "make": {"wine": 15, "cloth": 10, "tools": 6, "gunpowder": 5, "food": 20},
+    "shipyard": 2, "sailors": 50, "ships_for_sale": ["sloop", "brigantine", "brig"], "recruits": {"skills": {}, "traits": {}},
+    "laws": {"enumerated": [], "contraband": [], "vigilance": 0.5}
+  },
+  "amsterdam": {
+    "name": "Amsterdam", "faction": "dutch", "lat": 52.37, "lon": 4.9, "size": "large", "gates": ["north", "east"],
+    "offices": ["harbour_master", "merchant"],
+    "description": "The warehouse of the world. Its fluyts carry anyone's goods for anyone's money, and the West India Company sits behind its canals counting both.",
+    "population": 200000, "trade_share": 0.02, "tags": [],
+    "make": {"cloth": 25, "tools": 20, "gunpowder": 15, "naval_stores": 15, "wine": 8},
+    "shipyard": 2, "sailors": 120, "ships_for_sale": ["sloop", "brigantine", "brig", "fluyt"], "recruits": {"skills": {"trade": 1}, "traits": {}},
+    "laws": {"enumerated": [], "contraband": [], "vigilance": 0.4}
+  },
+  "boston": {
+    "name": "Boston", "faction": "england", "lat": 42.36, "lon": -71.06, "size": "medium", "gates": ["north"],
+    "governor": "Governor Samuel Shute", "offices": ["governor", "harbour_master", "merchant", "priest"],
+    "description": "Salt cod, flour and timber go south to feed the sugar islands; molasses comes back to make New England rum. The ministers preach against pirates, and the gallows on the Neck get used.",
+    "population": 12000, "trade_share": 0.5, "tags": [], "use": {"molasses": 12.0},
+    "make": {"food": 400, "naval_stores": 25, "rum": 12, "tools": 4},
+    "shipyard": 2, "sailors": 50, "ships_for_sale": ["sloop", "schooner", "brigantine"], "recruits": {"skills": {"seamanship": 1}, "traits": {}},
+    "laws": {"enumerated": ["sugar", "tobacco", "cotton", "indigo"], "contraband": [], "vigilance": 0.5}
+  },
+  "new_york": {
+    "name": "New York", "faction": "england", "lat": 40.71, "lon": -74.0, "size": "medium", "gates": ["north"],
+    "governor": "Governor Robert Hunter", "offices": ["governor", "harbour_master", "merchant"],
+    "description": "Flour and furs, and merchants who ask few questions. Not long ago its traders outfitted ships for the pirates of Madagascar, and some of them still keep the habit.",
+    "population": 7000, "trade_share": 0.6, "tags": [],
+    "make": {"food": 250, "naval_stores": 6, "hides": 5},
+    "shipyard": 1, "sailors": 30, "ships_for_sale": ["sloop", "brigantine"], "recruits": {"skills": {}, "traits": {"greedy": 0.1}},
+    "laws": {"enumerated": ["sugar", "tobacco", "cotton", "indigo"], "contraband": [], "vigilance": 0.3}
+  },
+  "charles_town": {
+    "name": "Charles Town", "faction": "england", "lat": 32.78, "lon": -79.93, "size": "small", "gates": ["north"],
+    "governor": "Governor Robert Johnson", "offices": ["governor", "harbour_master", "merchant", "planter"],
+    "description": "A walled town between two rivers, rich on rice, deerskins and pitch, and on the labour of the enslaved people who outnumber its free. Its bar is easy to blockade, as Blackbeard found.",
+    "population": 3500, "trade_share": 1.0, "tags": ["plantation"],
+    "make": {"food": 120, "naval_stores": 20, "hides": 15},
+    "shipyard": 1, "sailors": 15, "ships_for_sale": ["sloop", "schooner"], "recruits": {"skills": {}, "traits": {}},
+    "laws": {"enumerated": ["sugar", "tobacco", "cotton", "indigo"], "contraband": [], "vigilance": 0.4}
+  },
+  "st_johns": {
+    "name": "St. John's", "faction": "england", "lat": 47.56, "lon": -52.71, "size": "small", "gates": ["north"],
+    "offices": ["harbour_master", "merchant"],
+    "description": "Fishing stages and flakes of drying cod around a narrow harbour. Hundreds of men come out every summer to work the Banks for a pittance, and a pirate's offer sounds better than another season.",
+    "population": 1000, "trade_share": 1.0, "tags": [], "use": {"rum": 4.0},
+    "make": {"food": 150},
+    "shipyard": 0, "sailors": 120, "ships_for_sale": ["sloop"], "recruits": {"skills": {"seamanship": 2}, "traits": {"green": 0.1, "drunkard": 0.15}},
+    "laws": {"enumerated": [], "contraband": [], "vigilance": 0.1}
+  },
+  "cape_coast": {
+    "name": "Cape Coast Castle", "faction": "england", "lat": 5.105, "lon": -1.24, "size": "small", "gates": ["east"],
+    "governor": "Agent-General James Phipps", "offices": ["governor", "merchant"],
+    "description": "The Royal African Company's white fort on the Gold Coast. Its trade is in gold and in people. Below its walls are dungeons, and the town around it lives by and against the fort.",
+    "population": 3000, "trade_share": 1.0, "tags": ["garrison"], "use": {"cloth": 4.0, "rum": 3.0, "gunpowder": 3.0, "tools": 2.0},
+    "make": {"gold": 2, "food": 60},
+    "shipyard": 0, "sailors": 10, "ships_for_sale": [], "recruits": {"skills": {}, "traits": {}},
+    "laws": {"enumerated": [], "contraband": [], "vigilance": 0.5}
+  },
+  "elmina": {
+    "name": "Elmina", "faction": "dutch", "lat": 5.083, "lon": -1.35, "size": "small", "gates": ["east"],
+    "governor": "Director-General Willem Butler", "offices": ["governor", "merchant"],
+    "description": "São Jorge da Mina, the oldest fort on the coast, taken from the Portuguese and run by the Dutch West India Company. Like its English neighbour, it trades in gold and in people.",
+    "population": 4000, "trade_share": 1.0, "tags": ["garrison"], "use": {"cloth": 4.0, "rum": 2.0, "gunpowder": 3.0, "tools": 2.0},
+    "make": {"gold": 2, "food": 70},
+    "shipyard": 0, "sailors": 10, "ships_for_sale": [], "recruits": {"skills": {}, "traits": {}},
+    "laws": {"enumerated": [], "contraband": [], "vigilance": 0.5}
+  },
+  "goree": {
+    "name": "Gorée", "faction": "france", "lat": 14.667, "lon": -17.4, "size": "small", "gates": ["east"],
+    "governor": "Director Jean de Vauclin", "offices": ["governor", "merchant"],
+    "description": "A small rock off Cap-Vert, held by the Compagnie du Sénégal. Hides and gum come down from the river trade, and captives are held in its houses for the ships.",
+    "population": 1200, "trade_share": 1.0, "tags": ["garrison"], "use": {"cloth": 4.0, "rum": 2.0, "gunpowder": 2.0},
+    "make": {"hides": 8, "gold": 1, "food": 30},
+    "shipyard": 0, "sailors": 8, "ships_for_sale": [], "recruits": {"skills": {}, "traits": {}},
+    "laws": {"enumerated": [], "contraband": [], "vigilance": 0.4}
+  },
+  "sierra_leone": {
+    "name": "Sierra Leone River", "faction": "pirates", "fence": true, "lat": 8.48, "lon": -13.23, "size": "small", "gates": ["east"],
+    "broker": "Old Crackers", "offices": ["broker"],
+    "description": "Private traders, deserters and men who were once on the account live along the river under no flag. They welcome pirates, buy their plunder and drink their health.",
+    "population": 300, "trade_share": 1.0, "tags": ["pirate_haven"],
+    "make": {"food": 15, "hides": 2},
+    "shipyard": 0, "sailors": 25, "ships_for_sale": [], "recruits": {"skills": {"swordplay": 1}, "traits": {"drunkard": 0.2}},
+    "laws": {"contraband": [], "vigilance": 0.0}
   }
 }

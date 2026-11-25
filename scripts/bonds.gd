@@ -60,7 +60,7 @@ func _make_captain(f: String) -> String:
 	c.ship = names[rng.randi() % names.size()]
 	var types: Array = cc.ships.pirates if f == "pirates" else cc.ships.privateer
 	c.ship_type = types[rng.randi() % types.size()]
-	var havens := Ports.state.keys().filter(func(id): return Ports.port(id).get("fence", false)) if f == "pirates" else Contracts._ports_of(f)
+	var havens := Ports.home().filter(func(id): return Ports.port(id).get("fence", false)) if f == "pirates" else Contracts._ports_of(f)
 	c.haunt = havens[rng.randi() % havens.size()]
 	c.port = c.haunt
 	c.alive = true
@@ -725,7 +725,7 @@ func former_officer(s: Dictionary, id: String, lvl: int, ship := {}) -> String:
 	var names: Array = Data.table("factions")[c.faction].ship_names
 	c.ship = ship.get("name", names[rng.randi() % names.size()])
 	c.ship_type = ship.get("type", "sloop")
-	var havens: Array = Ports.state.keys().filter(func(p): return Ports.port(p).get("fence", false)) if c.faction == "pirates" else Contracts._ports_of(c.faction)
+	var havens: Array = Ports.home().filter(func(p): return Ports.port(p).get("fence", false)) if c.faction == "pirates" else Contracts._ports_of(c.faction)
 	c.haunt = havens[rng.randi() % havens.size()]
 	c.port = c.haunt
 	c.alive = true

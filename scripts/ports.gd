@@ -36,6 +36,20 @@ func port(id: String) -> Dictionary:
 	return Data.table("ports")[id]
 
 
+## A port across the Atlantic, off the map (London, Boston, Cape Coast...): reached by a passage through one of
+## its gates on the map's edge (data/rules.json "atlantic"). It's in the economy like any port, but its
+## trade_share scales its use and sailings to the part of its trade that faces the Caribbean, and it has only the
+## offices listed in its "offices". Wars, sieges, patrols, smugglers and contracts stay in the Caribbean.
+## "fleets_only" (Cádiz): no single merchants sail to or from it; Spain's Indies trade is the treasure fleets'.
+static func abroad(id: String) -> bool:
+	return Data.table("ports").get(id, {}).has("gates")
+
+
+## The ports on the map: the Caribbean.
+static func home() -> Array:
+	return Data.table("ports").keys().filter(func(id): return not abroad(id))
+
+
 ## A town changes hands: the new nation's flag, laws and officials. The static port data's faction is changed in
 ## place (and its first owner kept in orig_faction), so everything that asks a port's faction sees the new one.
 func change_owner(id: String, f: String) -> void:
@@ -568,7 +582,8 @@ func save_state() -> Dictionary:
 
 func load_state(d: Dictionary) -> void:
 	rng.state = int(d.rng)
-	state = d.state
+	for id in d.state:  # over the fresh state, so ports added since the save (the Atlantic) are still there
+		state[id] = d.state[id]
 	known = d.known
 	_restore_owners()
 	owners = d.get("owners", {})

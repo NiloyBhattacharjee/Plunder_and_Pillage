@@ -37,7 +37,7 @@ func open(player_ship: Node2D, result: Dictionary) -> void:
 		messages.append(share)
 	if enemy.faction != "pirates" and randf() < Data.table("politics").get("letters_aboard_chance", 0.15):  # a captain's papers
 		var found := Politics.gain_secret(ship.state, ["letters", "ledger", "bribes", "schedule"][randi() % 4], "", false,
-			Ports.state.keys().filter(func(id): return Ports.port(id).faction == enemy.faction).pick_random())
+			Ports.home().filter(func(id): return Ports.port(id).faction == enemy.faction).pick_random())
 		if found != "":
 			messages.append("Among the captain's papers: " + found.trim_prefix("You hold a secret: "))
 	var consorts := Bonds.roster().filter(func(id): return id != enemy.get("captain_id", "") and People.person(id).get("alive", true))

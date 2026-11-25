@@ -288,6 +288,14 @@
     },
     "surgeon_death_cut_per_point": 0.04, "surgeon_recover_per_point": 0.05
   },
+  "_atlantic": "Passages across the Atlantic (WorldMap.cross). The Caribbean map stays the map; sail to one of its gates on the edge and you make a crossing to a port abroad (ports.json entries with 'gates'). Days = great-circle miles from the gate x detour / (top speed in knots x 24 x speed_share): the trade winds and the Gulf Stream are why ships went out by one gate and came in by the other, but both work. On the way the days pass as at sea (food, water, wages, sickness), and a passage event may happen halfway (event 'where': 'passage').",
+  "atlantic": {
+    "gates": {
+      "north": {"name": "the Gulf Stream", "to": "To North America and Europe", "lat": 29.6, "lon": -79.0},
+      "east": {"name": "the trade-wind road", "to": "To Europe and the Guinea coast", "lat": 14.2, "lon": -58.9}
+    },
+    "detour": 1.15, "speed_share": 0.45, "min_days": 6
+  },
   "events": {"sea_daily_chance": 0.1, "port_chance": 0.35, "cooldown_days": 180, "chain_window_days": 90, "check_xp": 2.0, "max_stories": 3, "map_digs": 3, "map_fake_chance": 0.5},
   "contracts": {
     "max_active": 3, "refresh_days": 14, "offers_per_employer": [1, 3],

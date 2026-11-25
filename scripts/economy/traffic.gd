@@ -170,7 +170,7 @@ func _sailings(day: int, month: int) -> void:
 	var sail: float = m.cfg.sailing[month - 1]
 	for o in m.stock:
 		var p: Dictionary = m.ports[o]
-		var rate: float = p.population / 1000.0 * cfg().sailings_per_1000 * sail * m.world_mult("sailings:" + o) * m.world_mult("sailings:" + p.faction)
+		var rate: float = p.population / 1000.0 * p.get("trade_share", 1.0) * cfg().sailings_per_1000 * sail * m.world_mult("sailings:" + o) * m.world_mult("sailings:" + p.faction)
 		for t in p.tags:
 			rate *= cfg().tag_sailings.get(t, 1.0)
 		var n := int(rate) + (1 if m.rng.randf() < rate - int(rate) else 0)
@@ -188,9 +188,17 @@ func _send(o: String, day: int, month: int, f: String) -> void:
 	var storm_days: float = m.cfg.traffic.storm_loss_per_day[month - 1]
 	var options := []  # [value, {dest, good, qty, sell, t}]
 	var sent := _en_route_from(o)
+	var o_abroad: bool = m.ports[o].has("gates")
+	if m.ports[o].get("fleets_only", false):
+		return  # Spain's trade with the Indies goes only by the treasure fleets (Fleets), not by single merchants
+	var here := {}  # good -> [buy price, units to spare]: the same whichever port she's bound for
+	for g in m.traded():
+		here[g] = [m.price(o, g, true), m.stock[o][g] - m.params[o][g].normal * cfg().keep_home]
 	for d in board[o]:
 		if not allowed(f, d):
 			continue
+		if m.ports[d].has("gates") and (o_abroad or m.ports[o].size == "small" or m.ports[d].get("fleets_only", false)):
+			continue  # across the Atlantic only from a real port, and only to the Caribbean: its trade between Europe, Africa and America isn't on this map
 		var t: float = days(o, d) + cfg().loading_days
 		var safe: float = maxf(0.0, 1.0 - route_risk(o, d) * cfg().risk_aversion - (storm_days + cfg().pirate_loss_per_day) * t)
 		var spread_d: float = m.cfg.spread[m.ports[d].size] / 2.0
@@ -204,7 +212,7 @@ func _send(o: String, day: int, month: int, f: String) -> void:
 		for g in m.traded():
 			if (smuggling and not g in m.ports[d].laws.contraband) or g in enumerated:
 				continue
-			var buy := m.price(o, g, true)
+			var buy: float = here[g][0]
 			var normal_d: float = m.params[d][g].normal
 			# what she expects to fetch: the price heard, lowered by what this port has already sent that way
 			var coming: float = sent.get(d + ":" + g, 0.0)
@@ -213,7 +221,7 @@ func _send(o: String, day: int, month: int, f: String) -> void:
 			if sell < buy * (1.0 + cfg().min_margin):
 				continue
 			var w := float(m.goods[g].weight)
-			var spare: float = m.stock[o][g] - m.params[o][g].normal * cfg().keep_home
+			var spare: float = here[g][1]
 			var qty := minf(minf(hold / w, spare), normal_d * cfg().max_share_of_dest)  # no one ship floods a market
 			if qty < 1.0:
 				continue
@@ -230,7 +238,10 @@ func _send(o: String, day: int, month: int, f: String) -> void:
 	if qty <= 0:
 		return
 	m.add(o, g, -qty)
-	var news: Dictionary = board[o].duplicate()  # what's known here goes with her, and the latest from here
+	var news := {}  # what's known here goes with her (if it's fresh enough to be worth telling), and the latest from here
+	for id in board[o]:
+		if board[o][id].day >= day - int(cfg().news_days):
+			news[id] = board[o][id]
 	news[o] = {"day": day, "m": _prices(o)}
 	var key: String = o + ">" + best.dest
 	_route(key).sailings += 1
@@ -265,7 +276,11 @@ func load_state(d: Dictionary) -> void:
 		v.depart = int(v.depart)
 		v.arrive = int(v.arrive)
 		v.qty = int(v.qty)
-	board = d.board
+	for a in d.board:  # over the fresh board, so ports added since the save (the Atlantic) are still known of
+		if board.has(a):
+			for b in d.board[a]:
+				if board[a].has(b):
+					board[a][b] = d.board[a][b]
 	risk = d.risk
 	routes = d.routes
 	lost_log = d.lost_log

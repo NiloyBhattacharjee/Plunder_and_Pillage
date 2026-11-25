@@ -27,6 +27,9 @@ var _music := AudioStreamPlayer.new()  # the Vandalorum tracks in assets/audio, 
 var _ambience: AudioStreamPlayer       # the deck creaking, or a storm (_update_daylight); paused with the music
 var at_base := ""         # the cove you're anchored at, if any (a cove isn't a port: you count as at sea)
 var cove_anchors := {}    # cove id -> navigable anchorage
+var gate_anchors := {}    # Atlantic gate -> navigable point at the map's edge (scripts/atlantic.gd)
+var _after_slaver := {}   # a slave ship you took: her people's choice comes once the battle is settled
+var _crossing := false    # on an Atlantic passage: the days are passing, nothing at sea can find you
 var _raid_base := ""      # the base you're fighting for
 var _extra_allies: Array = []  # a ship from someone else's fight, fighting beside you in the next battle
 var _rescued := ""             # the ship you came to the aid of: she owes you thanks if you win   # you opened fire in the last battle (it matters to named captains)   # an event's "time" outcome runs days; don't start another inside it
@@ -56,8 +59,13 @@ func _ready() -> void:
 	EconomyEffects.player = ship.state if ship.state is Dictionary else {}
 	rng.randomize()
 	terrain = TerrainGrid.new(load("res://data/map/terrain.png").get_image(), int(Data.map.cell_px))
+	for g in Atlantic.gates():
+		gate_anchors[g] = terrain.nearest_sea(Atlantic.gate_pos(g))
 	for id in Data.table("ports"):
 		var p: Dictionary = Data.table("ports")[id]
+		if Ports.abroad(id):  # off the map: ships bound there sail for its gate and out of sight
+			anchorages[id] = gate_anchors[p.gates[0]]
+			continue
 		port_positions[id] = Geo.latlon_to_px(p.lat, p.lon)
 		var at: Array = p.get("anchor", [p.lat, p.lon])  # where ships lie, if the town itself is out of a route's reach
 		anchorages[id] = terrain.nearest_sea(Geo.latlon_to_px(at[0], at[1]))
@@ -206,7 +214,7 @@ func _daily() -> void:
 			hud.show_message(found)
 			port_layer.queue_redraw()
 	var base_day := Bases.daily(s, at_base if at_base != "" else ship.anchored_at)  # a held town is a base too
-	for m in base_day.messages:
+	for m in base_day.messages + Settlement.daily(s):
 		hud.show_message(m)
 	if base_day.messages.size() > 0:
 		port_layer.queue_redraw()
@@ -221,6 +229,8 @@ func _daily() -> void:
 	if Clock.date().day == 1:
 		Politics.leverage_month(s)
 		Politics.think_month(s)
+		for m in RivalBases.monthly(s):
+			hud.show_message(m)
 		for m in Bonds.monthly(s):
 			hud.show_message(m)
 	if s.has("succession") and not busy():
@@ -265,9 +275,19 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _set_course(target: Vector2) -> void:
-	if ship.state.hull <= 0:
+	if ship.state.hull <= 0 or _crossing:
 		return
+	if Ports.abroad(ship.anchored_at):  # across the Atlantic: first the passage home
+		if not await leave_abroad(ship.anchored_at):
+			return
 	chase_id = ""
+	var gate := _gate_near(target)
+	if gate != "":
+		var gpath := terrain.find_path(ship.position, gate_anchors[gate])
+		if not gpath.is_empty():
+			ship.set_route(gpath, "gate:" + gate)
+			hud.show_message("Setting course for %s, and the open Atlantic." % Atlantic.gate_name(gate))
+		return
 	at_base = ""
 	var npc: Dictionary = shipping.npc_at(target, 14.0 / camera.zoom.x)
 	if not npc.is_empty():
@@ -307,6 +327,131 @@ func _set_course(target: Vector2) -> void:
 		hud.show_message("Setting course for %s." % Data.table("ports")[port_id].name)
 
 
+## Another captain's base: rest if you're friends, otherwise raid it, sell it, or leave it be.
+func _at_rival_base(id: String) -> void:
+	UIKit.pause_clock()
+	var s: Dictionary = ship.state
+	var r := RivalBases.at(id)
+	var cap := People.person(r.captain)
+	var friend := Bonds.level(s, r.captain) > 0
+	var c: Dictionary = RivalBases.cfg()
+	var chance := Dice.contest_chance(Dice.sum_parts(RivalBases.raid_parts(s)), Dice.sum_parts(RivalBases.defence_parts(id)))
+	var parts := "
+".join(RivalBases.defence_parts(id).map(func(p): return "%s %+d" % p))
+	var pick: int = await dialog.ask("%s's base" % cap.name,
+		"Huts and a stockade above the beach at %s, a sloop careened on the sand, %d men ashore%s. %s" % [Bases.cove(id).name, r.garrison,
+			", and guns on the point" if r.fort > 0 else "", "They wave you in: you're friends." if friend else "The lookout has seen you, and the stockade gate is shut."], [
+		{"text": "Rest and take on water", "disabled": not friend, "tooltip": "Food +%d and water +%d from your friends' stores." % [c.ally_food, c.ally_water] if friend else "Only for a friend of %s." % cap.name},
+		{"text": "Storm it (%d%%)" % int(chance * 100), "disabled": friend or Crew.able(s) < 10,
+			"tooltip": "Their defence:
+%s
+Win: their strongbox (about %d gold) and a burned base. Either way, %s is your enemy." % [parts, r.gold, cap.name]},
+		{"text": "Sell the way in to a governor (%d gold)" % c.sell_gold, "tooltip": "The navy burns it. The Brethren will learn who told."},
+		{"text": "Leave them be"},
+	])
+	match pick:
+		0:
+			for g in ["food", "water"]:
+				s.cargo[g] = s.cargo.get(g, 0.0) + float(c["ally_" + g])
+			hud.show_message("%s's people fill your casks and share their stores." % cap.name)
+		1:
+			hud.show_message(RivalBases.raid(s, id))
+		2:
+			hud.show_message(RivalBases.betray(s, id))
+	port_layer.queue_redraw()
+	UIKit.resume_clock()
+
+
+## The Atlantic gate a click is on, or "".
+func _gate_near(pos: Vector2) -> String:
+	for g in gate_anchors:
+		if pos.distance_to(Atlantic.gate_pos(g)) < PORT_CLICK_RADIUS * 2.0 / camera.zoom.x:
+			return g
+	return ""
+
+
+## At a gate on the map's edge: where across the Atlantic, if anywhere.
+func _at_gate(g: String) -> void:
+	ship.anchored_at = ""  # a gate is open sea, not a port
+	UIKit.pause_clock()
+	var ids := Atlantic.reachable(g)
+	var knots: float = ship.stats.speed_knots
+	var food: float = ship.days_of("food")
+	var water: float = ship.days_of("water")
+	var opts := []
+	for id in ids:
+		var p: Dictionary = Ports.port(id)
+		var d := Atlantic.days(g, id, knots)
+		opts.append({"text": "%s, %s (%d days)" % [p.name, Career.fname(p.faction), d],
+			"tooltip": p.description + ("\nYou have food for %d days and water for %d." % [food, water]) +
+				("\nNOT ENOUGH FOR THE PASSAGE." if minf(food, water) < d else "")})
+	opts.append({"text": "Stay in the Caribbean"})
+	var pick: int = await dialog.ask("Out by %s" % Atlantic.gate_name(g),
+		"Beyond here is the open Atlantic: weeks without a landfall. Food, water and the men's health will be tested before you see land again.", opts)
+	if pick >= ids.size():
+		UIKit.resume_clock()
+		return
+	await cross(Atlantic.days(g, ids[pick], knots), ids[pick], g)
+
+
+## Anchored across the Atlantic and wanting to leave: home to the Caribbean, on to another port abroad, or stay.
+## True if you're back in the Caribbean (at a gate, free to set a course).
+func leave_abroad(id: String) -> bool:
+	UIKit.pause_clock()
+	var knots: float = ship.stats.speed_knots
+	var gate := Atlantic.best_gate(id, knots)
+	var others: Array = Data.table("ports").keys().filter(func(o): return o != id and Ports.abroad(o))
+	var opts := [{"text": "Sail for the Caribbean, by %s (%d days)" % [Atlantic.gate_name(gate), Atlantic.days(id, gate, knots)],
+		"tooltip": "You have food for %d days and water for %d." % [ship.days_of("food"), ship.days_of("water")]}]
+	for o in others:
+		opts.append({"text": "%s (%d days)" % [Ports.port(o).name, Atlantic.days(id, o, knots)], "tooltip": Ports.port(o).description})
+	opts.append({"text": "Stay at %s" % Ports.port(id).name})
+	var pick: int = await dialog.ask("Leaving %s" % Ports.port(id).name, "Where away?", opts)
+	if pick == 0:
+		await cross(Atlantic.days(id, gate, knots), "", gate)
+		return true
+	if pick <= others.size():
+		await cross(Atlantic.days(id, others[pick - 1], knots), others[pick - 1], gate)
+	else:
+		UIKit.resume_clock()
+	return false
+
+
+## An Atlantic passage of `days`: they pass as at sea (food, water, wages, sickness), and something may happen
+## halfway. Ends anchored at `dest`, or (dest "") back in the Caribbean at `gate`.
+func cross(days: int, dest: String, gate: String) -> void:
+	_crossing = true
+	chase_id = ""
+	ship.anchored_at = ""
+	ship.set_route(PackedVector2Array())
+	ship.position = gate_anchors[gate]
+	ship.visible = false
+	var crew_before := ShipStats.headcount(ship.state)
+	Clock.advance(days / 2)
+	_crossing = false  # an event may start a fight, so the world must answer for a moment
+	var inst := Events.pick("passage", _event_ctx())
+	if inst.is_empty():
+		inst = Events.pick("sea", _event_ctx())
+	if not inst.is_empty():
+		ship.visible = true
+		await run_event(inst)
+	_crossing = true
+	Clock.advance(days - days / 2)
+	_crossing = false
+	ship.visible = true
+	ship.position = gate_anchors[gate]
+	var lost := crew_before - ShipStats.headcount(ship.state)
+	var tally := "%d days at sea%s. Food for %d days left, water for %d." % [days,
+		(", and %d men lost on the way" % lost) if lost > 0 else "", ship.days_of("food"), ship.days_of("water")]
+	if dest == "":
+		hud.show_message("Landfall in the Caribbean at last: %s" % tally)
+		UIKit.resume_clock()
+		return
+	hud.show_message("%s sighted: %s" % [Ports.port(dest).name, tally])
+	ship.anchored_at = dest
+	_on_arrived(dest)
+
+
 func _cove_near(pos: Vector2) -> String:
 	var radius := PORT_CLICK_RADIUS / camera.zoom.x
 	for id in Bases.discovered:
@@ -319,6 +464,9 @@ func _cove_near(pos: Vector2) -> String:
 func _at_cove(id: String) -> void:
 	ship.anchored_at = ""
 	at_base = id
+	if not RivalBases.at(id).is_empty():
+		await _at_rival_base(id)
+		return
 	if Maroons.is_landing(id):
 		_at_landing(id)
 		return
@@ -432,6 +580,9 @@ func _on_arrived(id: String) -> void:
 	if id.begins_with("cove:"):
 		_at_cove(id.substr(5))
 		return
+	if id.begins_with("gate:"):
+		_at_gate(id.substr(5))
+		return
 	var access := Career.port_access(ship.state, id)
 	if access.open:
 		hud.show_message("Anchored at %s." % Data.table("ports")[id].name)
@@ -486,6 +637,8 @@ func _on_arrived(id: String) -> void:
 				hud.show_message("He takes your gold and sends for the guard. You leave in a hurry.")
 	if entered:
 		port_screen.open(id, ship, true)
+	elif Ports.abroad(id):  # turned away across the ocean: stand off and choose where else to go
+		await leave_abroad(id)
 	else:
 		ship.anchored_at = ""
 		ship.position = terrain.nearest_sea(ship.position + (ship.position - port_positions[id]).normalized() * 30.0)
@@ -684,7 +837,7 @@ func _load(starting := false) -> void:
 
 ## True while a screen, dialog or battle has the player's attention.
 func busy() -> bool:
-	return combat != null or _in_event or $BaseScreen.visible or port_screen.visible or crew_screen.visible or prize_screen.visible or dialog.visible
+	return combat != null or _in_event or _crossing or $BaseScreen.visible or port_screen.visible or crew_screen.visible or prize_screen.visible or dialog.visible
 
 
 # ---- Encounters and battle -------------------------------------------------
@@ -693,6 +846,8 @@ func busy() -> bool:
 
 ## An NPC ship has come within hail.
 func _on_contact(npc: Dictionary) -> void:
+	if _crossing:  # far out on the ocean: whatever was near the gate is weeks behind
+		return
 	chase_id = ""  # caught her: stop running her down
 	if npc.has("fight"):
 		battle_at_sea(npc)
@@ -1087,6 +1242,11 @@ func _next_track() -> void:
 
 func _on_combat_finished(result: Dictionary) -> void:
 	await _settle_battle(result)
+	if not _after_slaver.is_empty():  # the hold is opened: the freed people choose (data/events/slave_trade.json)
+		var inst := Events.instance_of("slaver_taken", _event_ctx(), _after_slaver)
+		_after_slaver = {}
+		if not inst.is_empty():
+			await run_event(Events.materialize(inst, _event_ctx()))
 	Events.after_battle(result.outcome in ["enemy_struck", "enemy_sunk"])  # a story's next act, if a story started this fight
 	battle_over.emit(result.outcome)
 
@@ -1152,6 +1312,14 @@ func _settle_battle(result: Dictionary) -> void:
 				if n > 0:
 					hud.show_message("Her papers give prices at %d port%s, as they stood when she sailed from %s." % [n, "" if n == 1 else "s", Ports.port(v.origin).name])
 			Economy.lose_voyage(current_npc.voyage, "player")
+		if current_npc.has("slaver"):  # the people in her hold: what happens now is theirs to decide
+			Economy.model.slavers.lose(current_npc.slaver)
+			if result.outcome == "enemy_struck":
+				_after_slaver = {"nation": e.faction, "ship": e.name}
+			else:
+				var o: Array = Data.table("economy").slave_trade.sunk_opinion
+				var grief := Events.grieve(s, -int(o[0]), -int(o[1]), "Sank a slave ship with her people aboard")
+				hud.show_message("The %s goes down, and nobody in her hold had a chance to get out. %s." % [e.name, grief if grief != "" else "The crew are silent"])
 		if current_npc.has("company"):  # a pirate company broken by you
 			Economy.model.brethren.lose(current_npc.company, "player")
 		shipping.remove(current_npc)

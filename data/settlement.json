@@ -1,0 +1,32 @@
+{
+  "_comment": "Your coves as places people live (scripts/settlement.gd). haven: a cove with a tavern you open to the Brethren; pirate companies come to work from it (Brethren.coves): each pays fee_per_man gold a day for each of its men (plunder sold, drink drunk), sends recruits_per_company sailors a day to your tavern, gives the cove away (visibility_per_company a day) and draws settlers. people: folk who come to live by a base, from its buildings and its havens (per day, toward cap), and leave when it's hungry, unpaid or raided. settlers: up to max named people, one of each trade, arriving when there are enough people (needs_people); each has a boon while they think well of you, and asks things of you: grant (pay from the treasury or the storehouse, or build it before the time's up) and they're yours; refuse or forget and they remember. Below leave_at they go, and talk. supply: runs between your bases, carried by a ship laid up at the source dock.",
+  "haven": {"needs": "tavern", "fee_per_man": 0.06, "recruits_per_company": 0.15, "visibility_per_company": 0.12, "people_per_company": 0.15},
+  "people": {"cap": 400, "drift": 0.02, "per_building": {"dock": 15, "tavern": 30, "warehouse": 10, "plantation": 40, "distillery": 15, "shipyard": 25, "smugglers_market": 30}, "per_company": 25, "hungry_leave": 0.03, "raid_leave": 0.25},
+  "settlers": {"max": 3, "needs_people": 20, "arrive_chance": 0.02, "ask_chance": 0.02, "leave_at": -40, "talk_visibility": 15,
+    "trades": {
+      "tavern_keeper": {"name": "Tavern keeper", "boon": "recruits", "boon_text": "Sends sailors your way: +0.3 recruits a day", "asks": ["rum", "stockade", "loan"]},
+      "smith": {"name": "Smith", "boon": "build", "boon_text": "Building goes faster: +0.4 days of work a day", "asks": ["tools", "loan", "battery"]},
+      "fence": {"name": "Fence", "boon": "price", "boon_text": "Gets better prices from the smugglers: +10%", "asks": ["loan", "warehouse", "quiet"]},
+      "healer": {"name": "Healer", "boon": "loyalty", "boon_text": "Keeps the garrison well: loyalty +6", "asks": ["food", "tools", "stockade"]},
+      "shipwright": {"name": "Shipwright", "boon": "keel", "boon_text": "Hulls on the slip go faster: +0.4 days of work a day", "asks": ["naval_stores", "loan", "shipyard"]}
+    }
+  },
+  "asks": {
+    "rum": {"text": "wants 20 rum for the tavern before the next ships come in", "goods": {"rum": 20}, "opinion": 15, "loyalty": 3, "days": 30},
+    "tools": {"text": "needs 10 tools to work with", "goods": {"tools": 10}, "opinion": 15, "loyalty": 3, "days": 40},
+    "food": {"text": "asks for 40 food for the sick and the hungry", "goods": {"food": 40}, "opinion": 15, "loyalty": 5, "days": 20},
+    "naval_stores": {"text": "needs 15 naval stores: pitch, tar and cordage", "goods": {"naval_stores": 15}, "opinion": 15, "loyalty": 2, "days": 40},
+    "loan": {"text": "asks for 150 gold to set up properly, and swears to pay it back", "gold": 150, "repay": 1.3, "repay_days": 90, "opinion": 20, "loyalty": 2, "days": 20},
+    "stockade": {"text": "wants a stockade raised: there are men here nobody trusts", "building": "stockade", "opinion": 20, "loyalty": 6, "days": 90},
+    "battery": {"text": "wants guns on the point before the navy comes calling", "building": "battery", "opinion": 20, "loyalty": 6, "days": 120},
+    "warehouse": {"text": "wants a proper warehouse, so the goods stop rotting on the beach", "building": "warehouse", "opinion": 15, "loyalty": 3, "days": 90},
+    "shipyard": {"text": "wants a shipyard to work in", "building": "shipyard", "opinion": 25, "loyalty": 3, "days": 150},
+    "quiet": {"text": "asks you to keep the Brethren away for a while: too many strangers know the way here", "haven_off": true, "opinion": 15, "loyalty": 2, "days": 30}
+  },
+  "refused": {"opinion": -20, "loyalty": -4},
+  "_rivals": "Bases of the named pirate captains (scripts/rival_bases.gd). A pirate captain of fame found_fame or more without a base makes one in an unclaimed cove (found_chance a month). Each month it grows (garrison_growth men to garrison_max, gold_per_fame x fame gold, a gun battery for fort_cost up to fort_max), and the navy may burn it (burn_chance, x 1 + heat x burn_per_heat on its cruising ground). Raid: your able men / men_per_point + swordplay against their men / men_per_point + fort x fort_strength + fame/20. Selling it to a governor: sell_gold, the Brethren's standing -sell_pirates, and a feud.",
+  "rivals": {"found_fame": 45, "found_chance": 0.04, "garrison_start": 15, "garrison_growth": 2, "garrison_max": 60, "gold_start": 150, "gold_per_fame": 3,
+    "fort_cost": 400, "fort_max": 2, "fort_strength": 2, "burn_chance": 0.01, "burn_per_heat": 0.3, "men_per_point": 10,
+    "raid_rivalry": 2, "raid_losses": 6, "sell_gold": 500, "sell_pirates": 20, "sell_rivalry": 3, "ally_food": 40, "ally_water": 40},
+  "supply": {"qty": 30, "every_days": 14, "nm_per_day": 90, "loss": 0.05}
+}

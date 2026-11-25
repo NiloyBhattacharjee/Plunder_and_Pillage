@@ -119,7 +119,7 @@ func refresh() -> void:
 	if fleet != "":
 		law_text += "
 " + fleet
-	%Info.text = "%s\n%s\n%s\nGold %d   Hold %d / %d tons" % ["Your town, run by %s" % (People.person(gov).name if gov != "" else "nobody yet") if Bases.is_town(port_id) else ("Governor: " + People.person(gov).name if gov != "" else "Ruled by the council of captains"),
+	%Info.text = "%s\n%s\n%s\nGold %d   Hold %d / %d tons" % ["Your town, run by %s" % (People.person(gov).name if gov != "" else "nobody yet") if Bases.is_town(port_id) else ("Governor: " + People.person(gov).name if gov != "" else ("Ruled by the council of captains" if p.faction == "pirates" else "No colonial governor here: %s answers to the Crown itself." % p.name)),
 		p.description, law_text, ship.state.gold, Market.cargo_used(ship.state.cargo), ship.capacity()]
 	_build_town()
 	_build_market()
@@ -395,6 +395,9 @@ func _build_governor() -> void:
 		return
 	if f == "pirates":
 		UIKit.label(box, "There is no governor's mansion here. The haven is ruled by its council of captains: see the Politics tab.", "", Style.c("dim"))
+		return
+	if Ports.abroad(port_id) and Politics.official(port_id, "governor") == "":
+		UIKit.label(box, "No colonial governor here: commissions, pardons and favours are a matter for the governors in the islands. The people who matter in %s are on the Politics tab." % p.name, "", Style.c("dim"))
 		return
 
 	UIKit.label(box, "")

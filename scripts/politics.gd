@@ -39,7 +39,7 @@ static func cfg() -> Dictionary:
 static func offices(port_id: String) -> Array:
 	var p := Ports.port(port_id)
 	var o: Dictionary = cfg().offices
-	var list: Array = (o.pirates if p.faction == "pirates" else (o.small if p.size == "small" else o.default)).duplicate()
+	var list: Array = p.get("offices", o.pirates if p.faction == "pirates" else (o.small if p.size == "small" else o.default)).duplicate()
 	if Bases.is_town(port_id):  # yours: your manager governs, and only the broker keeps their trade
 		list = []
 	if p.has("broker") and not "broker" in list:
@@ -68,7 +68,7 @@ func officials_at(port_id: String) -> Array:
 func _appoint(port_id: String, role: String, first: bool) -> String:
 	var p := Ports.port(port_id)
 	var c := People.generate({"mix": Data.rules.people.recruit_mix[p.faction], "pool": "official"})
-	if first and role == "governor":
+	if first and role == "governor" and p.has("governor"):
 		c.name = p.governor
 	elif first and role == "broker":
 		c.name = p.broker

@@ -156,7 +156,7 @@ static func income(f: String) -> float:
 	var people := 0.0
 	var settled: Dictionary = Economy.model.towns.settled
 	for id in settled:
-		if Ports.port(id).get("faction", "") == f:
+		if Ports.port(id).get("faction", "") == f and not Ports.abroad(id):  # its colonies, not London
 			people += settled[id]
 	return people * float(cfg().plunder.income_per_head)
 

@@ -38,6 +38,7 @@ func reset(seed := -1) -> void:
 func _on_day(d: int) -> void:
 	model.traffic.wars = _wars()
 	model.brethren.pardons = Factions.pardons.duplicate()
+	model.brethren.coves = Settlement.havens()
 	var date := Clock.date_of(d)
 	model.step(date.month, date.year)
 	for ev in model.brethren.take_events():
@@ -46,6 +47,8 @@ func _on_day(d: int) -> void:
 		fleet_event.emit(ev)
 	for ev in model.shocks.take_events():
 		add_news(ev.news, ev.port)
+	for ev in model.slavers.take_events():
+		add_news(ev.text, ev.port)
 	if d % 7 == 0:
 		model.sample_week()
 

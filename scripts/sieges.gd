@@ -31,6 +31,8 @@ static func defences(id: String) -> Dictionary:
 static func problem(s: Dictionary, id: String) -> String:
 	if Bases.bases.has(id):
 		return "It's yours."
+	if Ports.abroad(id):
+		return "Too far from your waters to hold, and too strong to take."
 	if "capital" in Ports.port(id).tags and 1 + s.get("prizes", []).filter(func(p): return Fleet.is_consort(p)).size() < cfg().capital_min_ships:
 		return "A capital: it would take a squadron of %d ships to try it." % cfg().capital_min_ships
 	if Crew.able(s) < cfg().min_men:

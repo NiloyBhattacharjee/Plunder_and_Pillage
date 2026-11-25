@@ -15,6 +15,7 @@ signal news(text: String)
 
 var discovered: Array = []
 var bases := {}
+var rivals := {}  # cove id -> {captain, since, garrison, gold, fort}: bases rival captains have made (scripts/rival_bases.gd)
 var rng := RandomNumberGenerator.new()
 
 
@@ -25,6 +26,7 @@ func _ready() -> void:
 func reset() -> void:
 	discovered = []
 	bases = {}
+	rivals = {}
 
 
 static func cfg() -> Dictionary:
@@ -60,6 +62,8 @@ func look_for_coves(s: Dictionary, pos: Vector2) -> String:
 		var nav := ShipStats.officer_skill(s, "navigator")
 		if Dice.check(rng, "Spot a cove", [["Navigation", Dice.mod(nav)], ["Well hidden", -int(cove(id).shelter)]], int(cfg().discover_dc)).success:
 			discovered.append(id)
+			if rivals.has(id):
+				return "Your navigator spots smoke over %s: huts, a careened sloop, a lookout on the point. It's %s's base." % [cove(id).name, People.person(rivals[id].captain).name]
 			return "Your navigator spots a sheltered anchorage: %s. %s" % [cove(id).name, cove(id).description]
 	return ""
 
@@ -84,6 +88,8 @@ func claim_problem(s: Dictionary, id: String) -> String:
 		return "The Maroons' landing isn't yours to take."
 	if bases.has(id):
 		return "It's already yours."
+	if rivals.has(id):
+		return "It's %s's: you'd have to take it from them first." % People.person(rivals[id].captain).name
 	if bases.size() >= cfg().max:
 		return "You can't hold more than %d bases." % cfg().max
 	if s.gold < cfg().claim_cost:
@@ -212,6 +218,8 @@ func loyalty_parts(id: String) -> Array:
 		parts.append(["%s's authority" % man.name, (People.value(man, "authority") - 8) * 2.0])
 	if has(b, "tavern"):
 		parts.append(["The tavern", 10.0])
+	if Settlement.boon(b, "loyalty") > 0.0:
+		parts.append(["The healer", Settlement.boon(b, "loyalty")])
 	return parts
 
 
@@ -335,7 +343,7 @@ func move_goods(s: Dictionary, id: String, good: String, qty: float, ship_capaci
 static func nearest_port(id: String) -> String:
 	var best := ""
 	for p in Ports.state:
-		if Ports.port(p).faction == "pirates":
+		if Ports.port(p).faction == "pirates" or Ports.abroad(p):
 			continue
 		var d := Geo.latlon_to_px(Ports.port(p).lat, Ports.port(p).lon).distance_to(cove_pos(id))
 		if best == "" or d < Geo.latlon_to_px(Ports.port(best).lat, Ports.port(best).lon).distance_to(cove_pos(id)):
@@ -347,7 +355,7 @@ static func nearest_port(id: String) -> String:
 func smuggler_price(id: String, good: String) -> float:
 	var b: Dictionary = bases[id]
 	var trade: int = People.value(People.person(b.manager), "trade") if b.manager != "" else 0
-	return Ports.price(nearest_port(id), good, false) * (1.0 + trade * cfg().manager_trade_per_point)
+	return Ports.price(nearest_port(id), good, false) * (1.0 + trade * cfg().manager_trade_per_point + Settlement.boon(b, "price"))
 
 
 func sell(s: Dictionary, id: String, good: String, qty: float) -> String:
@@ -411,14 +419,14 @@ func daily(s: Dictionary, here: String) -> Dictionary:
 		var man := People.person(b.manager) if b.manager != "" and People.chars.has(b.manager) else {}
 		# construction
 		if not b.building.is_empty():
-			b.building.left -= 1.0 + (People.value(man, "carpentry") * c.manager_build_per_point if not man.is_empty() else 0.0)
+			b.building.left -= 1.0 + Settlement.boon(b, "build") + (People.value(man, "carpentry") * c.manager_build_per_point if not man.is_empty() else 0.0)
 			if b.building.left <= 0:
 				b.buildings.append(b.building.id)
 				msgs.append("The %s at %s is finished." % [building(b.building.id).name.to_lower(), b.name])
 				b.building = {}
 		# a hull on the slip
 		if b.has("keel"):
-			b.keel.left -= 1.0 + (People.value(man, "carpentry") * c.manager_build_per_point if not man.is_empty() else 0.0)
+			b.keel.left -= 1.0 + Settlement.boon(b, "keel") + (People.value(man, "carpentry") * c.manager_build_per_point if not man.is_empty() else 0.0)
 			if b.keel.left <= 0:
 				var st := ShipStats.effective(b.keel.type, [])
 				b.prizes.append(Fleet.ensure({"type": b.keel.type, "name": b.keel.name, "faction": "", "hull": float(st.hull), "sails": float(st.sails)}))
@@ -643,6 +651,7 @@ func resolve_raid(s: Dictionary, id: String, bonus: int) -> String:
 		news.emit(text)
 		return text
 	var lost: Array = b.buildings.filter(func(x): return x != "dock")
+	b.raided = true  # the shanties empty (Settlement)
 	var burned := ""
 	if not lost.is_empty():
 		burned = lost[rng.randi() % lost.size()]
@@ -692,10 +701,11 @@ func watch_points() -> Array:
 
 
 func save_state() -> Dictionary:
-	return {"discovered": discovered, "bases": bases, "rng": str(rng.state)}
+	return {"discovered": discovered, "bases": bases, "rivals": rivals, "rng": str(rng.state)}
 
 
 func load_state(d: Dictionary) -> void:
 	discovered = d.discovered
 	bases = d.bases
+	rivals = d.get("rivals", {})
 	rng.state = int(d.rng)

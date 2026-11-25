@@ -1,0 +1,82 @@
+{
+  "_comment": "Events on an Atlantic passage (where: passage), drawn halfway across (WorldMap.cross). Weeks of open ocean: the doldrums, scurvy, weevils, the Banks fog. Ordinary sea events can happen out here too.",
+  "atlantic_doldrums": {
+    "title": "Becalmed",
+    "text": "The wind dies and doesn't come back. For days the sails hang like washing and the pitch bubbles in the deck seams. The water casks go down by the hour, and the men watch each other.",
+    "where": "passage",
+    "choices": [
+      {"text": "Put the boats out and tow her", "outcomes": ["opinion crew -3", "water -10", "time 2"],
+       "result": "Hour after hour at the oars in the heat. It moves her a few miles, and the men a long way from loving you."},
+      {"text": "Cut the water ration and wait", "outcomes": ["water +15", "morale -10 14", "time 5"],
+       "result": "Half a pint a day, then less. When the wind comes at last there are men too weak to haul on a line."},
+      {"text": "Broach a cask of rum to keep their spirits up", "conditions": ["cargo.rum >= 5"], "outcomes": ["cargo rum -5", "morale +5 7", "time 4"],
+       "result": "Singing on the forecastle, and a fight or two. The wind finds you on the fourth day."}
+    ]
+  },
+  "atlantic_scurvy": {
+    "title": "The scurvy",
+    "text": "Six weeks out, and the old hands know the signs before the surgeon does: gums gone soft and black, old wounds opening again, men too tired to climb. {sailor} can't stand any more.",
+    "where": "passage",
+    "conditions": ["crew >= 10"],
+    "roles": {"sailor": {"from": "crew", "where": ["not officer"]}},
+    "choices": [
+      {"text": "Make for the nearest land, whatever it costs in days", "outcomes": ["time 6", "opinion crew +3"],
+       "result": "Six days off course to an island with a stream and some wild greens. {sailor} lives, and so do most of the others."},
+      {"text": "Have the surgeon do what can be done", "check": {"who": "post.surgeon", "skill": "medicine", "dc": 13},
+       "outcomes": ["opinion {sailor} +10"], "result": "Vinegar, onions from the captain's own store, rest below. {sailor} pulls through.",
+       "fail_outcomes": ["kill {sailor}", "crew -2"], "fail_result": "The surgeon has nothing that helps. {sailor} goes over the side sewn in a hammock, and two more follow before landfall."},
+      {"text": "Press on: landfall can't be far", "outcomes": ["kill {sailor}", "crew -3", "opinion crew -4"],
+       "result": "It's further than you said. The sailmaker runs out of old canvas to sew the dead into."}
+    ]
+  },
+  "atlantic_weevils": {
+    "title": "Weevils in the bread",
+    "text": "The purser comes aft with a biscuit in each hand and taps them on the table. Things crawl out. Half the bread room has gone the same way, and the salt beef in the bottom tier stinks.",
+    "where": "passage",
+    "conditions": ["food >= 10"],
+    "choices": [
+      {"text": "Throw the worst of it over the side", "outcomes": ["food -25%", "opinion crew +2"],
+       "result": "Less to eat, but nobody's sick from it."},
+      {"text": "Eat it anyway, as sailors always have", "outcomes": ["morale -5 10", "crew -1"],
+       "result": "They knock the biscuit on the deck before they eat it, and make jokes about the extra meat. One man dies of the flux."}
+    ]
+  },
+  "atlantic_banks_fog": {
+    "title": "Fog on the Banks",
+    "text": "The fog comes down thick as wool over the Grand Banks. Somewhere close a bell is ringing: the fishing fleet, hundreds of small boats and the ships that carry their catch, all of them hard to see and harder to miss.",
+    "where": "passage",
+    "choices": [
+      {"text": "Heave to and wait for it to lift", "outcomes": ["time 2"], "result": "Two days of dripping rigging and the bell never stopping. Then the sun, and boats all around you."},
+      {"text": "Speak the fishermen: they always want hands, and rum", "conditions": ["cargo.rum >= 5"], "outcomes": ["cargo rum -5", "gold +60", "crew +3"],
+       "result": "They pay for rum in coin and fish, and three of their men, sick of the cod and the masters who own them, ask to sign your articles."},
+      {"text": "Keep going and trust the lookouts", "check": {"who": "post.navigator", "skill": "navigation", "dc": 12},
+       "outcomes": [], "result": "Shapes slide past in the grey and the bell fades astern.",
+       "fail_outcomes": ["hull -8", "opinion crew -2"], "fail_result": "A crack forward and screaming in the fog: you've run down a fishing boat. You pull two men out of the water. The rest are gone, and your bow is sprung."}
+    ]
+  },
+  "atlantic_storm": {
+    "title": "A North Atlantic gale",
+    "text": "It comes out of the west with the glass falling all day: grey seas taller than the mainmast, rolling in one after another. She's labouring, and the pumps are going.",
+    "where": "passage",
+    "choices": [
+      {"text": "Run before it under bare poles", "check": {"who": "captain", "skill": "seamanship", "dc": 13},
+       "outcomes": ["sails -10", "time 2"], "result": "Three days running east, and nothing lost but canvas and sleep.",
+       "fail_outcomes": ["hull -15", "sails -20", "crew -2", "time 3"], "fail_result": "She broaches in the night and lies on her side. When she comes up two men are gone, and so is half the rigging."},
+      {"text": "Heave to and ride it out", "outcomes": ["hull -8", "sails -5", "time 3"], "result": "Three days with her head to the seas, pumping in turns. She leaks worse than before, but she's whole."}
+    ]
+  },
+  "atlantic_stowaway": {
+    "title": "A stowaway",
+    "text": "The carpenter, going round the hold, comes back up with someone by the collar: {stowaway}, thin and filthy, hidden behind the water casks since the last port. Worth a flogging under any articles.",
+    "where": "passage",
+    "roles": {"stowaway": {"from": "new"}},
+    "choices": [
+      {"text": "Sign {stowaway} on: we need hands", "outcomes": ["hire {stowaway}", "opinion crew +1"],
+       "result": "{stowaway} can hand, reef and steer, as it turns out, and works like someone with a lot to prove."},
+      {"text": "Work the passage, then put them ashore", "outcomes": ["honour +1"],
+       "result": "{stowaway} scrubs and pumps the whole way across and goes down the side at the first landfall without a word."},
+      {"text": "Flog them, as the articles say", "outcomes": ["fear +1", "opinion crew -2"],
+       "result": "Twelve lashes at the grating. Some of the crew have been stowaways themselves, and they remember it."}
+    ]
+  }
+}

@@ -29,7 +29,8 @@ func _draw() -> void:
 		draw_arc(cp, 5.0 * s, 0.0, TAU, 16, col, 1.5 * s)
 		draw_line(cp + Vector2(0, -3.5) * s, cp + Vector2(0, 3.5) * s, col, 1.5 * s)  # an anchor, roughly
 		draw_line(cp + Vector2(-2.5, -1.5) * s, cp + Vector2(2.5, -1.5) * s, col, 1.5 * s)
-		var label: String = Bases.cove(id).name + (" (your base)" if mine else (" (Maroons)" if Maroons.is_landing(id) else ""))
+		var label: String = Bases.cove(id).name + (" (your base)" if mine else (" (Maroons)" if Maroons.is_landing(id) else (
+			" (%s's base)" % People.person(Bases.rivals[id].captain).name if Bases.rivals.has(id) else "")))
 		if mine and not Bases.bases[id].raid.is_empty() and Bases.bases[id].raid.warned:
 			label += " - RAID COMING"
 		_text(Style.font("pixel"), cp + Vector2(8, 5) * s, label, 15, col, Style.c("chart_paper_light"))
@@ -44,6 +45,17 @@ func _draw() -> void:
 			draw_dashed_line(h.from, h.to, red, 2.0 * s, 10.0 * s)
 			at = h.from.lerp(h.to, 0.5)
 		_text(Style.font("italic"), at, h.label, 15, red)
+	for g in Atlantic.gates():  # the ways out across the Atlantic: a badge with an arrow pointing off the chart
+		var gp := Atlantic.gate_pos(g)
+		var dir := Vector2(1, 0) if g == "east" else Vector2(0.4, -1).normalized()
+		var ink: Color = Style.c("chart_ink")
+		draw_circle(gp, 13.0 * s, Style.c("chart_paper_light"))
+		draw_arc(gp, 13.0 * s, 0.0, TAU, 24, ink, 2.0 * s)
+		draw_line(gp - dir * 7.0 * s, gp + dir * 3.0 * s, ink, 2.5 * s)
+		var tip := gp + dir * 9.0 * s
+		draw_colored_polygon(PackedVector2Array([tip, tip - dir * 6.0 * s + dir.orthogonal() * 4.5 * s, tip - dir * 6.0 * s - dir.orthogonal() * 4.5 * s]), ink)
+		var at := gp + (Vector2(-150, 32) if g == "east" else Vector2(18, 5)) * s  # the east gate is near the chart's edge: its name goes under it
+		_text(Style.font("pixel"), at, Data.rules.atlantic.gates[g].to, 16, ink, Style.c("chart_paper_light"))
 	for id in port_positions:
 		var port: Dictionary = Data.table("ports")[id]
 		var pos: Vector2 = port_positions[id]
